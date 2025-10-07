@@ -52,7 +52,7 @@ export default function LoginPage() {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">¿No tienes una cuenta? </span>
-            <Link href="/registro" className="font-medium text-blue-600 hover:text-blue-700">
+            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-700">
               Regístrate aquí
             </Link>
           </div>

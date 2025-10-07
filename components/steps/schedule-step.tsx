@@ -89,7 +89,7 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
               <Checkbox
                 id="is24Hours"
                 checked={data.is24Hours}
-                onCheckedChange={checked => onUpdate({ is24Hours: checked as boolean })}
+                onCheckedChange={(checked: boolean) => onUpdate({ is24Hours: checked })}
               />
               <label htmlFor="is24Hours" className="cursor-pointer text-sm font-medium">
                 Abierto 24 horas

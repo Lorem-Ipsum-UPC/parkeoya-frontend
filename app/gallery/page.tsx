@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 
-export default function GaleriaPage() {
+export default function GalerryPage() {
   const screenshots = [
     {
       title: 'Página de Inicio',
