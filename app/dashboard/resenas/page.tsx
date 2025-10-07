@@ -1,13 +1,5 @@
-import { ProtectedRoute } from "@/components/auth/protected-route"
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { ReviewsManagement } from "@/components/dashboard/reviews-management"
+import { ReviewsManagement } from '@/components/pages/reviews-management'
 
 export default function ResenasPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardLayout>
-        <ReviewsManagement />
-      </DashboardLayout>
-    </ProtectedRoute>
-  )
+  return <ReviewsManagement />
 }

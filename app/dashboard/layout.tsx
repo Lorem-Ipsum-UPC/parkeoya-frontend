@@ -1,0 +1,10 @@
+import { ProtectedRoute } from '@/components/forms/protected-route'
+import { DashboardLayout } from '@/components/layouts/dashboard-layout'
+
+export default function DashboardRootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>{children}</DashboardLayout>
+    </ProtectedRoute>
+  )
+}

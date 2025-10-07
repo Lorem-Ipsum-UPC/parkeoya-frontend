@@ -1,13 +1,15 @@
 import type { Metadata } from 'next'
+import React from 'react'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+import '@/styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Parkeoya - Gestión de Espacios de Estacionamiento',
+  description:
+    'Plataforma para gestionar y reservar espacios de estacionamiento de manera eficiente',
+  keywords: ['estacionamiento', 'reservas', 'espacios', 'gestión'],
+  authors: [{ name: 'Parkeoya Team' }],
 }
 
 export default function RootLayout({
@@ -17,10 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        {children}
-        <Analytics />
-      </body>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>{children}</body>
     </html>
   )
 }
