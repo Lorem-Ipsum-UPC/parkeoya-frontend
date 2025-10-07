@@ -115,7 +115,7 @@ export function ReviewsManagement() {
     if (!selectedReview || !responseText.trim()) return
 
     // Mock response submission - replace with actual API call
-    console.log('Submitting response:', { reviewId: selectedReview.id, response: responseText })
+    // TODO: Replace with actual API call
 
     // Update local state
     selectedReview.hasResponse = true

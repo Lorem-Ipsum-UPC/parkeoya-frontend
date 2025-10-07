@@ -1,5 +1,5 @@
 import { FinancialReports } from '@/components/pages/financial-reports'
 
-export default function FinanzasPage() {
+export default function FinancesPage() {
   return <FinancialReports />
 }

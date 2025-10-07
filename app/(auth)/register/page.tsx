@@ -2,7 +2,7 @@ import { RegistrationForm } from '@/components/forms/registration-form'
 import { Car } from '@/lib/icons'
 import Link from 'next/link'
 
-export default function RegistroPage() {
+export default function RegisterPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left side - Branding */}

@@ -22,11 +22,11 @@ import { logout, getCurrentUser } from '@/lib/auth'
 
 const navigation = [
   { name: 'Panel General', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Espacios IoT', href: '/dashboard/espacios', icon: Square },
-  { name: 'Reservas', href: '/dashboard/reservas', icon: Calendar },
-  { name: 'Finanzas', href: '/dashboard/finanzas', icon: DollarSign },
-  { name: 'Reseñas', href: '/dashboard/resenas', icon: Star },
-  { name: 'Configuración', href: '/dashboard/configuracion', icon: Settings },
+  { name: 'Espacios IoT', href: '/dashboard/spaces', icon: Square },
+  { name: 'Reservas', href: '/dashboard/reservations', icon: Calendar },
+  { name: 'Finanzas', href: '/dashboard/finances', icon: DollarSign },
+  { name: 'Reseñas', href: '/dashboard/reviews', icon: Star },
+  { name: 'Configuración', href: '/dashboard/configuration', icon: Settings },
 ]
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
