@@ -19,6 +19,7 @@ import {
   LogOut,
 } from '@/lib/icons'
 import { logout, getCurrentUser } from '@/lib/auth'
+import { MapPin } from 'lucide-react'
 
 const navigation = [
   { name: 'Panel General', href: '/dashboard', icon: LayoutDashboard },
@@ -54,8 +55,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="flex items-center justify-between border-b p-6">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600">
-                <Car className="h-6 w-6 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-green-300">
+                <MapPin className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold">ParkeoYa</span>
             </Link>
@@ -74,8 +75,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-gradient-to-r from-blue-600 to-green-300 text-white'
+                      : 'text-muted-foreground hover:bg-gradient-to-r hover:from-blue-600 hover:to-green-300 hover:text-white'
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >

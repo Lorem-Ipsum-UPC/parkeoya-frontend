@@ -118,8 +118,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         <header className="border-b bg-white">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-                <Car className="h-5 w-5 text-white" />
+              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
+                <Car className="text-primary-foreground h-5 w-5" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">ParkeoYa</h1>

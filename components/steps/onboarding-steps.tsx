@@ -22,9 +22,9 @@ export function OnboardingSteps({ steps, currentStep }: OnboardingStepsProps) {
               <div
                 className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors ${
                   step.id < currentStep
-                    ? 'border-blue-600 bg-blue-600 text-white'
+                    ? 'border-primary bg-primary text-primary-foreground'
                     : step.id === currentStep
-                      ? 'border-blue-600 bg-blue-600 text-white'
+                      ? 'border-primary bg-primary text-primary-foreground'
                       : 'bg-background border-border text-muted-foreground'
                 }`}
               >
@@ -50,7 +50,7 @@ export function OnboardingSteps({ steps, currentStep }: OnboardingStepsProps) {
             {index < steps.length - 1 && (
               <div
                 className={`absolute top-5 left-1/2 -z-10 h-0.5 w-full transition-colors ${
-                  step.id < currentStep ? 'bg-blue-600' : 'bg-border'
+                  step.id < currentStep ? 'bg-primary' : 'bg-border'
                 }`}
               />
             )}

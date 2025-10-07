@@ -36,7 +36,7 @@ export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="hourlyRate" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-600" />
+                <DollarSign className="text-primary h-4 w-4" />
                 Tarifa por Hora *
               </Label>
               <div className="relative">
@@ -59,7 +59,7 @@ export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps
 
             <div className="space-y-2">
               <Label htmlFor="dailyRate" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-600" />
+                <DollarSign className="text-primary h-4 w-4" />
                 Tarifa Diaria
               </Label>
               <div className="relative">
@@ -81,7 +81,7 @@ export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps
 
             <div className="space-y-2">
               <Label htmlFor="monthlyRate" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-blue-600" />
+                <DollarSign className="text-primary h-4 w-4" />
                 Tarifa Mensual
               </Label>
               <div className="relative">
@@ -104,7 +104,7 @@ export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps
 
           <div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950/20">
             <div className="flex items-start gap-3">
-              <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+              <Info className="text-primary mt-0.5 h-5 w-5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="mb-1 font-medium text-blue-900 dark:text-blue-100">
                   Comisión de la plataforma
@@ -121,7 +121,7 @@ export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps
             <Button type="button" variant="outline" onClick={onBack}>
               Atrás
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="bg-primary hover:bg-primary/90">
               Continuar
             </Button>
           </div>

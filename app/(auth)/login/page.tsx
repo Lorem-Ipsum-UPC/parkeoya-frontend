@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left side - Branding */}
-      <div className="hidden flex-col justify-between bg-gradient-to-br from-blue-600 to-blue-800 p-12 text-white lg:flex lg:w-1/2">
+      <div className="hidden flex-col justify-between bg-gradient-to-br from-blue-500 to-green-300 p-12 text-white lg:flex lg:w-1/2">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
             <Car className="h-6 w-6 text-blue-600" />

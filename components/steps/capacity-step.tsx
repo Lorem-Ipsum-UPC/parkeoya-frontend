@@ -55,7 +55,7 @@ export function CapacityStep({ data, onUpdate, onNext, onBack }: CapacityStepPro
 
             <div className="space-y-2">
               <Label htmlFor="regularSpaces" className="flex items-center gap-2">
-                <Car className="h-4 w-4 text-blue-600" />
+                <Car className="text-primary h-4 w-4" />
                 Espacios Regulares
               </Label>
               <Input
@@ -70,7 +70,7 @@ export function CapacityStep({ data, onUpdate, onNext, onBack }: CapacityStepPro
 
             <div className="space-y-2">
               <Label htmlFor="disabledSpaces" className="flex items-center gap-2">
-                <Accessibility className="h-4 w-4 text-blue-600" />
+                <Accessibility className="text-primary h-4 w-4" />
                 Espacios para Personas con Discapacidad
               </Label>
               <Input
@@ -85,7 +85,7 @@ export function CapacityStep({ data, onUpdate, onNext, onBack }: CapacityStepPro
 
             <div className="space-y-2">
               <Label htmlFor="electricSpaces" className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-blue-600" />
+                <Zap className="text-primary h-4 w-4" />
                 Espacios con Carga Eléctrica
               </Label>
               <Input
@@ -103,7 +103,7 @@ export function CapacityStep({ data, onUpdate, onNext, onBack }: CapacityStepPro
             <Button type="button" variant="outline" onClick={onBack}>
               Atrás
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="bg-primary hover:bg-primary/90">
               Continuar
             </Button>
           </div>

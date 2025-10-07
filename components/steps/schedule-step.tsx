@@ -62,7 +62,7 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
                 type="button"
                 variant="link"
                 onClick={selectAllDays}
-                className="h-auto p-0 text-blue-600"
+                className="text-primary h-auto p-0"
               >
                 Seleccionar todos
               </Button>
@@ -100,7 +100,7 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="openTime" className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-600" />
+                    <Clock className="text-primary h-4 w-4" />
                     Hora de Apertura
                   </Label>
                   <input
@@ -115,7 +115,7 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
 
                 <div className="space-y-2">
                   <Label htmlFor="closeTime" className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-600" />
+                    <Clock className="text-primary h-4 w-4" />
                     Hora de Cierre
                   </Label>
                   <input
@@ -135,7 +135,7 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
             <Button type="button" variant="outline" onClick={onBack}>
               Atrás
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="bg-primary hover:bg-primary/90">
               Finalizar Configuración
             </Button>
           </div>

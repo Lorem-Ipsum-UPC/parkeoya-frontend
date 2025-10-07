@@ -83,7 +83,7 @@ export function LocationStep({ data, onUpdate, onNext, onBack }: LocationStepPro
 
           <div className="bg-muted/50 rounded-lg border p-4">
             <div className="flex items-start gap-3">
-              <MapPin className="mt-0.5 h-5 w-5 text-blue-600" />
+              <MapPin className="text-primary mt-0.5 h-5 w-5" />
               <div className="flex-1">
                 <h4 className="mb-2 text-sm font-medium">Coordenadas GPS (Opcional)</h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -118,7 +118,7 @@ export function LocationStep({ data, onUpdate, onNext, onBack }: LocationStepPro
             <Button type="button" variant="outline" onClick={onBack}>
               Atrás
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" className="bg-primary hover:bg-primary/90">
               Continuar
             </Button>
           </div>
