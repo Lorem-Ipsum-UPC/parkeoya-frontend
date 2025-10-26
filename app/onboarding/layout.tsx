@@ -5,6 +5,10 @@ import { useRouter, usePathname } from 'next/navigation'
 import { ProtectedRoute } from '@/components/forms/protected-route'
 import { OnboardingSteps } from '@/components/steps/onboarding-steps'
 import { Car } from '@/lib/icons'
+import { apiClient } from '@/lib/api'
+import { getCachedProfile } from '@/lib/auth'
+import { useToast } from '@/hooks/use-toast'
+import type { CreateParkingRequest } from '@/lib/api'
 
 interface OnboardingContextType {
   data: any
@@ -51,6 +55,8 @@ const STEPS = [
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -58,19 +64,19 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     city: '',
     province: '',
     zipCode: '',
-    totalSpaces: 50,
-    hourlyRate: 2.5,
-    dailyRate: 15,
-    monthlyRate: 200,
-    schedule: {
-      monday: { enabled: true, start: '08:00', end: '20:00' },
-      tuesday: { enabled: true, start: '08:00', end: '20:00' },
-      wednesday: { enabled: true, start: '08:00', end: '20:00' },
-      thursday: { enabled: true, start: '08:00', end: '20:00' },
-      friday: { enabled: true, start: '08:00', end: '20:00' },
-      saturday: { enabled: true, start: '09:00', end: '18:00' },
-      sunday: { enabled: false, start: '09:00', end: '18:00' },
-    },
+    latitude: '',
+    longitude: '',
+    totalSpaces: '50',
+    regularSpaces: '40',
+    disabledSpaces: '5',
+    electricSpaces: '5',
+    hourlyRate: '2.5',
+    dailyRate: '15',
+    monthlyRate: '200',
+    operatingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+    openTime: '08:00',
+    closeTime: '20:00',
+    is24Hours: false,
   })
 
   // Determinar step actual basado en la ruta
@@ -85,14 +91,62 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     setFormData(prev => ({ ...prev, ...data }))
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const nextStep = currentStep + 1
     if (nextStep <= STEPS.length) {
       const nextPath = STEPS[nextStep - 1].path
       router.push(nextPath)
     } else {
-      // Completar onboarding
-      router.push('/dashboard')
+      // Último paso - Enviar datos al backend
+      setIsSubmitting(true)
+      
+      try {
+        const profile = getCachedProfile()
+        if (!profile) {
+          toast({
+            title: 'Error',
+            description: 'No se encontró el perfil de usuario',
+            variant: 'destructive',
+          })
+          router.push('/login')
+          return
+        }
+
+        // Mapear datos del frontend al formato del backend
+        const parkingData: CreateParkingRequest = {
+          ownerId: profile.parkingOwnerId,
+          name: formData.name,
+          description: formData.description,
+          address: `${formData.address}, ${formData.city}, ${formData.province}, ${formData.zipCode}`,
+          ratePerHour: parseFloat(formData.hourlyRate),
+          totalSpots: parseInt(formData.totalSpaces),
+          availableSpots: parseInt(formData.totalSpaces), // Inicialmente todos disponibles
+          totalRows: Math.ceil(parseInt(formData.totalSpaces) / 10), // Estimación: 10 espacios por fila
+          totalColumns: 10,
+          imageUrl: '', // Backend requiere string, no null/undefined
+        }
+
+        console.log('Enviando datos al backend:', parkingData)
+        console.log('Token disponible:', !!localStorage.getItem('parkeoya_token'))
+
+        await apiClient.createParking(parkingData)
+
+        toast({
+          title: '¡Éxito!',
+          description: 'Estacionamiento registrado correctamente',
+        })
+
+        router.push('/dashboard')
+      } catch (error) {
+        console.error('Error creating parking:', error)
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'No se pudo registrar el estacionamiento',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
@@ -144,7 +198,16 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
                 isLast: currentStep === STEPS.length,
               }}
             >
-              {children}
+              {isSubmitting ? (
+                <div className="flex min-h-[400px] items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+                    <p className="text-muted-foreground">Guardando estacionamiento...</p>
+                  </div>
+                </div>
+              ) : (
+                children
+              )}
             </OnboardingContext.Provider>
           </div>
         </div>

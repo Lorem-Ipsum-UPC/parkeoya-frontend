@@ -3,7 +3,7 @@
 import type React from 'react'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,10 +11,9 @@ import { useToast } from '@/hooks/use-toast'
 import { Eye, EyeOff } from '@/lib/icons'
 
 export function LoginForm() {
-  const router = useRouter()
+  const { signIn, isLoading, error } = useAuth()
   const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,28 +21,21 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
 
-    // Simulate API call - replace with actual Supabase auth later
-    setTimeout(() => {
-      // Mock successful login
-      localStorage.setItem(
-        'parkeoya_user',
-        JSON.stringify({
-          id: '1',
-          email: formData.email,
-          name: 'Miguel Castro',
-        })
-      )
+    const result = await signIn(formData)
 
+    if (result.success) {
       toast({
         title: 'Inicio de sesión exitoso',
         description: 'Bienvenido a ParkeoYa',
       })
-
-      router.push('/dashboard')
-      setIsLoading(false)
-    }, 1000)
+    } else {
+      toast({
+        title: 'Error',
+        description: result.error || 'No se pudo iniciar sesión',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (
@@ -87,6 +79,10 @@ export function LoginForm() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">{error}</div>
+      )}
 
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
         {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
