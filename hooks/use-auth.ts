@@ -16,8 +16,16 @@ export function useAuth() {
     setError(null)
 
     try {
+      // Add timestamps
+      const now = new Date().toISOString()
+      const signUpData = {
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+      }
+
       // 1. Create account
-      await apiClient.signUp(data)
+      await apiClient.signUp(signUpData)
 
       // 2. Auto login after signup
       const authResponse = await apiClient.signIn({

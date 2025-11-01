@@ -41,6 +41,8 @@ export interface SignUpRequest {
   phone: string
   companyName: string
   ruc: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface SignInRequest {
