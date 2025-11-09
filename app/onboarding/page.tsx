@@ -10,6 +10,10 @@ import { CapacityStep } from '@/components/steps/capacity-step'
 import { PricingStep } from '@/components/steps/pricing-step'
 import { ScheduleStep } from '@/components/steps/schedule-step'
 import { Car } from '@/lib/icons'
+import { apiClient } from '@/lib/api/client'
+import { getCurrentUser } from '@/lib/auth'
+import { useToast } from '@/hooks/use-toast'
+import { formatTimeForBackend } from '@/lib/utils'
 
 const STEPS = [
   { id: 1, title: 'Información Básica', description: 'Datos de tu estacionamiento' },
@@ -21,7 +25,9 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     // Basic Info
     name: '',
@@ -49,13 +55,140 @@ export default function OnboardingPage() {
     is24Hours: false,
   })
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1)
     } else {
-      // Save parking data and redirect to dashboard
+      // Last step - create parking and spots in backend
+      await handleFinish()
+    }
+  }
+
+  const handleFinish = async () => {
+    setIsSubmitting(true)
+
+    try {
+      const user = getCurrentUser()
+      if (!user?.id) {
+        toast({
+          title: 'Error',
+          description: 'Usuario no encontrado',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Create parking
+      const parkingData = {
+        ownerId: user.id,
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        province: formData.province,
+        postalCode: formData.zipCode,
+        lat: parseFloat(formData.latitude) || 0,
+        lng: parseFloat(formData.longitude) || 0,
+        ratePerHour: formData.hourlyRate,
+        dailyRate: formData.dailyRate,
+        monthlyRate: formData.monthlyRate,
+        totalSpots: formData.totalSpaces,
+        regularSpots: formData.regularSpaces,
+        disabledSpots: formData.disabledSpaces,
+        electricSpots: formData.electricSpaces,
+        availableSpots: formData.totalSpaces,
+        totalRows: '10', // Default values
+        totalColumns: '10',
+        operatingDays: formData.operatingDays.join(','),
+        open24Hours: formData.is24Hours,
+        openingTime: formData.is24Hours ? undefined : formatTimeForBackend(formData.openTime),
+        closingTime: formData.is24Hours ? undefined : formatTimeForBackend(formData.closeTime),
+      }
+
+      const parking = await apiClient.createParking(parkingData)
+
+      toast({
+        title: 'Estacionamiento creado',
+        description: 'Creando espacios de parqueo...',
+      })
+
+      // Create parking spots automatically
+      const totalSpots = parseInt(formData.totalSpaces)
+      const disabledSpots = parseInt(formData.disabledSpaces) || 0
+      const electricSpots = parseInt(formData.electricSpaces) || 0
+      const regularSpots =
+        parseInt(formData.regularSpaces) || totalSpots - disabledSpots - electricSpots
+
+      let spotIndex = 1
+      let row = 0
+      let col = 0
+      const spotsPerRow = 10 // Default: 10 spots per row
+
+      // Create disabled spots first
+      for (let i = 0; i < disabledSpots; i++) {
+        const label = `D-${String(spotIndex).padStart(2, '0')}`
+        await apiClient.addParkingSpot(parking.id, {
+          row: row,
+          column: col,
+          label: label,
+        })
+        spotIndex++
+        col++
+        if (col >= spotsPerRow) {
+          col = 0
+          row++
+        }
+      }
+
+      // Create electric spots
+      for (let i = 0; i < electricSpots; i++) {
+        const label = `E-${String(spotIndex).padStart(2, '0')}`
+        await apiClient.addParkingSpot(parking.id, {
+          row: row,
+          column: col,
+          label: label,
+        })
+        spotIndex++
+        col++
+        if (col >= spotsPerRow) {
+          col = 0
+          row++
+        }
+      }
+
+      // Create regular spots
+      for (let i = 0; i < regularSpots; i++) {
+        const label = `R-${String(spotIndex).padStart(2, '0')}`
+        await apiClient.addParkingSpot(parking.id, {
+          row: row,
+          column: col,
+          label: label,
+        })
+        spotIndex++
+        col++
+        if (col >= spotsPerRow) {
+          col = 0
+          row++
+        }
+      }
+
+      toast({
+        title: '¡Configuración completada!',
+        description: `Se crearon ${totalSpots} espacios de parqueo exitosamente`,
+      })
+
+      // Save to localStorage and redirect to dashboard
       localStorage.setItem('parkeoya_parking', JSON.stringify(formData))
       router.push('/dashboard')
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error ? error.message : 'No se pudo completar la configuración',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -125,6 +258,7 @@ export default function OnboardingPage() {
                 onUpdate={updateFormData}
                 onNext={handleNext}
                 onBack={handleBack}
+                isSubmitting={isSubmitting}
               />
             )}
           </div>

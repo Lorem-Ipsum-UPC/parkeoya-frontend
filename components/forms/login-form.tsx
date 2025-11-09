@@ -43,12 +43,28 @@ export function LoginForm() {
         })
       )
 
-      toast({
-        title: 'Inicio de sesión exitoso',
-        description: 'Bienvenido a ParkeoYa',
-      })
-
-      router.push('/dashboard')
+      // Check if user has a parking registered
+      try {
+        const parkings = await apiClient.getParkingsByOwnerId(response.id)
+        if (parkings.length === 0) {
+          // First time user, redirect to onboarding
+          toast({
+            title: 'Bienvenido a ParkeoYa',
+            description: 'Completa el registro de tu estacionamiento',
+          })
+          router.push('/onboarding')
+        } else {
+          // User already has parking, redirect to dashboard
+          toast({
+            title: 'Inicio de sesión exitoso',
+            description: 'Bienvenido de nuevo a ParkeoYa',
+          })
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        // If error checking parkings, redirect to onboarding to be safe
+        router.push('/onboarding')
+      }
     } catch (error) {
       toast({
         title: 'Error de inicio de sesión',

@@ -18,6 +18,7 @@ interface ScheduleStepProps {
   onUpdate: (data: Partial<ScheduleStepProps['data']>) => void
   onNext: () => void
   onBack: () => void
+  isSubmitting?: boolean
 }
 
 const DAYS = [
@@ -30,7 +31,13 @@ const DAYS = [
   { id: 'sunday', label: 'Domingo' },
 ]
 
-export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepProps) {
+export function ScheduleStep({
+  data,
+  onUpdate,
+  onNext,
+  onBack,
+  isSubmitting = false,
+}: ScheduleStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onNext()
@@ -132,11 +139,15 @@ export function ScheduleStep({ data, onUpdate, onNext, onBack }: ScheduleStepPro
           </div>
 
           <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={onBack}>
+            <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
               Atrás
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">
-              Finalizar Configuración
+            <Button
+              type="submit"
+              className="bg-primary hover:bg-primary/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creando estacionamiento...' : 'Finalizar Configuración'}
             </Button>
           </div>
         </form>

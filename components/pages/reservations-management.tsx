@@ -236,8 +236,9 @@ export function ReservationsManagement() {
                 <div className="space-y-3">
                   {filterReservations(activeTab === 'all' ? undefined : activeTab).map(
                     reservation => {
-                      const config =
-                        statusConfig[reservation.status.toLowerCase() as keyof typeof statusConfig]
+                      const statusKey =
+                        reservation.status.toLowerCase() as keyof typeof statusConfig
+                      const config = statusConfig[statusKey] || statusConfig.scheduled // Fallback to scheduled
                       const StatusIcon = config.icon
 
                       // Calculate duration in hours
@@ -338,15 +339,19 @@ export function ReservationsManagement() {
               <CardTitle>Detalles de la Reserva</CardTitle>
               <Badge
                 className={
-                  statusConfig[
-                    selectedReservation.status.toLowerCase() as keyof typeof statusConfig
-                  ].color
+                  (
+                    statusConfig[
+                      selectedReservation.status.toLowerCase() as keyof typeof statusConfig
+                    ] || statusConfig.scheduled
+                  ).color
                 }
               >
                 {
-                  statusConfig[
-                    selectedReservation.status.toLowerCase() as keyof typeof statusConfig
-                  ].label
+                  (
+                    statusConfig[
+                      selectedReservation.status.toLowerCase() as keyof typeof statusConfig
+                    ] || statusConfig.scheduled
+                  ).label
                 }
               </Badge>
             </div>

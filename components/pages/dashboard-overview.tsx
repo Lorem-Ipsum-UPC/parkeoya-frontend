@@ -1,35 +1,107 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Square,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-} from '@/lib/icons'
+import { Square, Calendar, CheckCircle2, XCircle, Star, Settings, Car, Clock } from '@/lib/icons'
+import { apiClient } from '@/lib/api/client'
+import { getCurrentUser } from '@/lib/auth'
+import { useToast } from '@/hooks/use-toast'
+import type { ParkingResource, ReservationResource, DeviceResource } from '@/lib/api/types'
 
-// Mock data - replace with real data from Supabase
-const stats = {
-  totalSpaces: 50,
-  occupiedSpaces: 32,
-  availableSpaces: 18,
-  todayReservations: 45,
-  todayRevenue: 287.5,
-  monthlyRevenue: 8625.0,
+interface DashboardStats {
+  totalSpaces: number
+  occupiedSpaces: number
+  availableSpaces: number
+  todayReservations: number
+  activeReservations: number
 }
 
-const recentActivity = [
-  { id: 1, type: 'reservation', message: 'Nueva reserva - Espacio A-12', time: 'Hace 5 min' },
-  { id: 2, type: 'checkout', message: 'Salida - Espacio B-08', time: 'Hace 12 min' },
-  { id: 3, type: 'sensor', message: 'Sensor C-15 desconectado', time: 'Hace 25 min', alert: true },
-  { id: 4, type: 'reservation', message: 'Nueva reserva - Espacio A-05', time: 'Hace 32 min' },
-]
-
 export function DashboardOverview() {
-  const occupancyRate = ((stats.occupiedSpaces / stats.totalSpaces) * 100).toFixed(1)
+  const router = useRouter()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalSpaces: 0,
+    occupiedSpaces: 0,
+    availableSpaces: 0,
+    todayReservations: 0,
+    activeReservations: 0,
+  })
+  const [recentReservations, setRecentReservations] = useState<ReservationResource[]>([])
+  const [parking, setParking] = useState<ParkingResource | null>(null)
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      const user = getCurrentUser()
+      if (!user?.id) {
+        router.push('/login')
+        return
+      }
+
+      try {
+        // Get user's parking
+        const parkings = await apiClient.getParkingsByOwnerId(user.id)
+        if (parkings.length === 0) {
+          router.push('/onboarding')
+          return
+        }
+
+        const userParking = parkings[0]
+        setParking(userParking)
+
+        // Get reservations
+        const reservations = await apiClient.getReservationsByParkingId(userParking.id)
+
+        // Filter today's reservations
+        const today = new Date().toISOString().split('T')[0]
+        const todayReservations = reservations.filter(r => r.date === today)
+        const activeReservations = reservations.filter(
+          r => r.status.toLowerCase() === 'active'
+        ).length
+
+        // Get parking spots to calculate occupancy
+        const spots = await apiClient.getParkingSpotsByParkingId(userParking.id)
+        const occupiedSpots = spots.filter(s => s.status.toLowerCase() === 'occupied').length
+
+        setStats({
+          totalSpaces: userParking.totalSpots,
+          occupiedSpaces: occupiedSpots,
+          availableSpaces: userParking.availableSpots,
+          todayReservations: todayReservations.length,
+          activeReservations: activeReservations,
+        })
+
+        // Get recent reservations (last 5)
+        const sortedReservations = [...reservations]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5)
+        setRecentReservations(sortedReservations)
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'No se pudieron cargar los datos del dashboard',
+          variant: 'destructive',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
+  }, [router, toast])
+
+  const occupancyRate =
+    stats.totalSpaces > 0 ? ((stats.occupiedSpaces / stats.totalSpaces) * 100).toFixed(1) : '0'
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -40,64 +112,51 @@ export function DashboardOverview() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
-              Ocupación Actual
-            </CardTitle>
-            <Square className="text-muted-foreground h-4 w-4" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ocupación</CardTitle>
+            <Car className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.occupiedSpaces}/{stats.totalSpaces}
-            </div>
-            <p className="text-muted-foreground mt-1 text-xs">{occupancyRate}% ocupado</p>
-            <div className="bg-secondary mt-3 h-2 overflow-hidden rounded-full">
-              <div className="h-full bg-blue-600" style={{ width: `${occupancyRate}%` }} />
-            </div>
+            <div className="text-2xl font-bold">{occupancyRate}%</div>
+            <p className="text-muted-foreground text-xs">
+              {stats.occupiedSpaces} de {stats.totalSpaces} espacios
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
-              Espacios Disponibles
-            </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Disponibles</CardTitle>
+            <CheckCircle2 className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.availableSpaces}</div>
-            <p className="mt-1 text-xs text-green-600">Listos para reservar</p>
+            <p className="text-muted-foreground text-xs">Espacios libres</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
-              Reservas Hoy
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reservas Hoy</CardTitle>
             <Calendar className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.todayReservations}</div>
-            <p className="text-muted-foreground mt-1 text-xs">+12% vs ayer</p>
+            <p className="text-muted-foreground text-xs">Reservaciones programadas</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
-              Ingresos Hoy
-            </CardTitle>
-            <DollarSign className="text-muted-foreground h-4 w-4" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reservas Activas</CardTitle>
+            <Clock className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.todayRevenue.toFixed(2)}</div>
-            <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
-              <TrendingUp className="h-3 w-3" />
-              +8.2% vs ayer
-            </p>
+            <div className="text-2xl font-bold">{stats.activeReservations}</div>
+            <p className="text-muted-foreground text-xs">En este momento</p>
           </CardContent>
         </Card>
       </div>
@@ -110,7 +169,10 @@ export function DashboardOverview() {
             <CardTitle>Acciones Rápidas</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <button className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors">
+            <Link
+              href="/dashboard/spaces"
+              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
                 <Square className="h-5 w-5 text-blue-600" />
               </div>
@@ -118,9 +180,12 @@ export function DashboardOverview() {
                 <p className="font-medium">Ver Espacios IoT</p>
                 <p className="text-muted-foreground text-sm">Monitoreo en tiempo real</p>
               </div>
-            </button>
+            </Link>
 
-            <button className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors">
+            <Link
+              href="/dashboard/reservations"
+              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900">
                 <Calendar className="h-5 w-5 text-green-600" />
               </div>
@@ -128,52 +193,98 @@ export function DashboardOverview() {
                 <p className="font-medium">Gestionar Reservas</p>
                 <p className="text-muted-foreground text-sm">Ver reservas activas</p>
               </div>
-            </button>
+            </Link>
 
-            <button className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
-                <DollarSign className="h-5 w-5 text-purple-600" />
+            <Link
+              href="/dashboard/reviews"
+              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900">
+                <Star className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="font-medium">Reportes Financieros</p>
-                <p className="text-muted-foreground text-sm">Análisis de ingresos</p>
+                <p className="font-medium">Ver Reseñas</p>
+                <p className="text-muted-foreground text-sm">Gestionar comentarios</p>
               </div>
-            </button>
+            </Link>
+
+            <Link
+              href="/dashboard/configuration"
+              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
+                <Settings className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-medium">Configuración</p>
+                <p className="text-muted-foreground text-sm">Ajustes del parqueadero</p>
+              </div>
+            </Link>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Reservations */}
         <Card>
           <CardHeader>
-            <CardTitle>Actividad Reciente</CardTitle>
+            <CardTitle>Reservas Recientes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivity.map(activity => (
-                <div key={activity.id} className="flex items-start gap-3">
-                  <div
-                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                      activity.alert
-                        ? 'bg-red-100 dark:bg-red-900'
-                        : activity.type === 'reservation'
-                          ? 'bg-blue-100 dark:bg-blue-900'
-                          : 'bg-green-100 dark:bg-green-900'
-                    }`}
-                  >
-                    {activity.alert ? (
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                    ) : activity.type === 'reservation' ? (
-                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-green-600" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{activity.message}</p>
-                    <p className="text-muted-foreground text-xs">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+              {recentReservations.length === 0 ? (
+                <p className="text-muted-foreground text-center text-sm">
+                  No hay reservas recientes
+                </p>
+              ) : (
+                recentReservations.map(reservation => {
+                  const statusConfig = {
+                    active: {
+                      label: 'Activa',
+                      color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+                      icon: CheckCircle2,
+                    },
+                    scheduled: {
+                      label: 'Programada',
+                      color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+                      icon: Calendar,
+                    },
+                    completed: {
+                      label: 'Completada',
+                      color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+                      icon: CheckCircle2,
+                    },
+                    cancelled: {
+                      label: 'Cancelada',
+                      color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+                      icon: XCircle,
+                    },
+                  }
+
+                  const status =
+                    statusConfig[reservation.status.toLowerCase() as keyof typeof statusConfig] ||
+                    statusConfig.scheduled
+                  const StatusIcon = status.icon
+
+                  return (
+                    <div key={reservation.id} className="flex items-start gap-3">
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-full ${status.color}`}
+                      >
+                        <StatusIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium">Espacio {reservation.parkingId}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {new Date(reservation.date).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}{' '}
+                          - {status.label}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           </CardContent>
         </Card>
