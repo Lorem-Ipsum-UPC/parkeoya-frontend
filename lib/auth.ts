@@ -20,5 +20,11 @@ export function logout() {
 }
 
 export function isAuthenticated() {
-  return getCurrentUser() !== null
+  if (typeof window === 'undefined') return false
+
+  const userStr = localStorage.getItem('parkeoya_user')
+  const token = localStorage.getItem('parkeoya_token')
+
+  // Both user data and token must exist
+  return userStr !== null && token !== null
 }

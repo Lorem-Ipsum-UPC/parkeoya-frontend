@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { Eye, EyeOff } from '@/lib/icons'
+import { apiClient } from '@/lib/api/client'
 
 export function LoginForm() {
   const router = useRouter()
@@ -24,15 +25,21 @@ export function LoginForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call - replace with actual Supabase auth later
-    setTimeout(() => {
-      // Mock successful login
+    try {
+      // Call actual API
+      const response = await apiClient.signIn({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      // Store token and user data
+      localStorage.setItem('parkeoya_token', response.token)
       localStorage.setItem(
         'parkeoya_user',
         JSON.stringify({
-          id: '1',
-          email: formData.email,
-          name: 'Miguel Castro',
+          id: response.id,
+          email: response.email,
+          name: 'Usuario', // We don't have name in AuthResponse, will get from profile later
         })
       )
 
@@ -42,8 +49,15 @@ export function LoginForm() {
       })
 
       router.push('/dashboard')
+    } catch (error) {
+      toast({
+        title: 'Error de inicio de sesión',
+        description: error instanceof Error ? error.message : 'Credenciales inválidas',
+        variant: 'destructive',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (

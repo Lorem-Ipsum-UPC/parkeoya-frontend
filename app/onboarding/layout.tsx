@@ -5,6 +5,9 @@ import { useRouter, usePathname } from 'next/navigation'
 import { ProtectedRoute } from '@/components/forms/protected-route'
 import { OnboardingSteps } from '@/components/steps/onboarding-steps'
 import { Car } from '@/lib/icons'
+import { apiClient } from '@/lib/api'
+import { CreateParkingResource } from '@/lib/api/types'
+import { getCurrentUser } from '@/lib/auth'
 
 interface OnboardingContextType {
   data: any
@@ -58,19 +61,21 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     city: '',
     province: '',
     zipCode: '',
-    totalSpaces: 50,
-    hourlyRate: 2.5,
-    dailyRate: 15,
-    monthlyRate: 200,
-    schedule: {
-      monday: { enabled: true, start: '08:00', end: '20:00' },
-      tuesday: { enabled: true, start: '08:00', end: '20:00' },
-      wednesday: { enabled: true, start: '08:00', end: '20:00' },
-      thursday: { enabled: true, start: '08:00', end: '20:00' },
-      friday: { enabled: true, start: '08:00', end: '20:00' },
-      saturday: { enabled: true, start: '09:00', end: '18:00' },
-      sunday: { enabled: false, start: '09:00', end: '18:00' },
-    },
+    latitude: '',
+    longitude: '',
+    totalSpaces: '50',
+    regularSpaces: '40',
+    disabledSpaces: '5',
+    electricSpaces: '5',
+    hourlyRate: '2.5',
+    dailyRate: '15',
+    monthlyRate: '200',
+    totalRows: 5,
+    totalColumns: 10,
+    operatingDays: [],
+    is24Hours: false,
+    openTime: '08:00',
+    closeTime: '20:00',
   })
 
   // Determinar step actual basado en la ruta
@@ -85,14 +90,54 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     setFormData(prev => ({ ...prev, ...data }))
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const nextStep = currentStep + 1
     if (nextStep <= STEPS.length) {
       const nextPath = STEPS[nextStep - 1].path
       router.push(nextPath)
     } else {
-      // Completar onboarding
-      router.push('/dashboard')
+      // Completar onboarding - enviar data al backend
+      try {
+        const user = getCurrentUser()
+        if (!user || !user.id) {
+          throw new Error('Usuario no encontrado')
+        }
+
+        // Mapear data del formulario al formato del backend
+        const parkingData: CreateParkingResource = {
+          ownerId: user.id,
+          name: formData.name,
+          description: formData.description,
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          postalCode: formData.zipCode,
+          lat: parseFloat(formData.latitude) || 0,
+          lng: parseFloat(formData.longitude) || 0,
+          ratePerHour: formData.hourlyRate,
+          dailyRate: formData.dailyRate,
+          monthlyRate: formData.monthlyRate,
+          totalSpots: formData.totalSpaces,
+          regularSpots: formData.regularSpaces,
+          disabledSpots: formData.disabledSpaces,
+          electricSpots: formData.electricSpaces,
+          availableSpots: formData.totalSpaces, // Inicialmente igual al total
+          totalRows: formData.totalRows.toString(),
+          totalColumns: formData.totalColumns.toString(),
+          operatingDays: formData.operatingDays.join(','), // Convertir array a string separado por comas
+          open24Hours: formData.is24Hours,
+          openingTime: formData.is24Hours ? undefined : formData.openTime,
+          closingTime: formData.is24Hours ? undefined : formData.closeTime,
+        }
+
+        // Crear el parking en el backend
+        await apiClient.createParking(parkingData)
+
+        // Redireccionar al dashboard
+        router.push('/dashboard')
+      } catch (error) {
+        alert('Error al guardar la configuración. Por favor intenta de nuevo.')
+      }
     }
   }
 

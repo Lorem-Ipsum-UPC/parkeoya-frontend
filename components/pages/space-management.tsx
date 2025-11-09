@@ -1,36 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Filter, Wifi, WifiOff, CheckCircle2, XCircle } from '@/lib/icons'
+import { apiClient } from '@/lib/api/client'
+import { getCurrentUser } from '@/lib/auth'
+import type { ParkingSpotResource, DeviceResource } from '@/lib/api/types'
+import { useToast } from '@/hooks/use-toast'
 
-// Mock IoT sensor data - replace with real data from Supabase
-const generateSpaces = () => {
-  const spaces = []
-  const rows = ['A', 'B', 'C', 'D', 'E']
-  const statuses = ['available', 'occupied', 'reserved', 'offline']
-
-  for (const row of rows) {
-    for (let i = 1; i <= 10; i++) {
-      const spaceNumber = `${row}-${i.toString().padStart(2, '0')}`
-      const randomStatus = statuses[Math.floor(Math.random() * statuses.length)]
-      spaces.push({
-        id: spaceNumber,
-        number: spaceNumber,
-        status: randomStatus,
-        sensorId: `SENSOR-${spaceNumber}`,
-        lastUpdate: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-        type: i <= 8 ? 'regular' : i === 9 ? 'disabled' : 'electric',
-      })
-    }
-  }
-  return spaces
+// Map device status to space status
+const getSpaceStatus = (device: DeviceResource | undefined): string => {
+  if (!device || device.operationalStatus === 'OFFLINE') return 'offline'
+  if (device.spotStatus === 'AVAILABLE') return 'available'
+  if (device.spotStatus === 'OCCUPIED') return 'occupied'
+  if (device.spotStatus === 'RESERVED') return 'reserved'
+  return 'offline'
 }
 
-const spaces = generateSpaces()
+// Combine parking spot with device data
+interface SpaceWithDevice extends ParkingSpotResource {
+  device?: DeviceResource
+  displayStatus: string
+}
 
 const statusConfig = {
   available: {
@@ -64,18 +58,80 @@ const statusConfig = {
 }
 
 export function SpaceManagement() {
+  const { toast } = useToast()
+  const [spaces, setSpaces] = useState<SpaceWithDevice[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSpace, setSelectedSpace] = useState<(typeof spaces)[0] | null>(null)
+  const [selectedSpace, setSelectedSpace] = useState<SpaceWithDevice | null>(null)
+
+  const loadSpaces = useCallback(async () => {
+    try {
+      setLoading(true)
+      const user = getCurrentUser()
+      if (!user?.id) {
+        toast({
+          title: 'Error',
+          description: 'Usuario no encontrado',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Get the user's parkings
+      const parkings = await apiClient.getParkingsByOwnerId(user.id)
+      if (parkings.length === 0) {
+        setSpaces([])
+        return
+      }
+
+      // Get parking spots
+      const parkingSpots = await apiClient.getParkingSpotsByParkingId(parkings[0].id)
+
+      // Get edge servers for this parking
+      const edgeServers = await apiClient.getEdgeServersByParkingId(parkings[0].id)
+
+      // Get devices for each edge server and combine
+      let allDevices: DeviceResource[] = []
+      for (const edgeServer of edgeServers) {
+        const devices = await apiClient.getDevicesByEdgeServerId(edgeServer.serverId)
+        allDevices = [...allDevices, ...devices]
+      }
+
+      // Combine spots with device data
+      const spacesWithDevices: SpaceWithDevice[] = parkingSpots.map(spot => {
+        const device = allDevices.find(d => d.parkingSpotId === spot.id)
+        return {
+          ...spot,
+          device,
+          displayStatus: getSpaceStatus(device),
+        }
+      })
+
+      setSpaces(spacesWithDevices)
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los espacios',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    loadSpaces()
+  }, [loadSpaces])
 
   const stats = {
-    available: spaces.filter(s => s.status === 'available').length,
-    occupied: spaces.filter(s => s.status === 'occupied').length,
-    reserved: spaces.filter(s => s.status === 'reserved').length,
-    offline: spaces.filter(s => s.status === 'offline').length,
+    available: spaces.filter(s => s.displayStatus === 'available').length,
+    occupied: spaces.filter(s => s.displayStatus === 'occupied').length,
+    reserved: spaces.filter(s => s.displayStatus === 'reserved').length,
+    offline: spaces.filter(s => s.displayStatus === 'offline').length,
   }
 
   const filteredSpaces = spaces.filter(space =>
-    space.number.toLowerCase().includes(searchQuery.toLowerCase())
+    space.label.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -170,32 +226,39 @@ export function SpaceManagement() {
           <CardTitle>Matriz de Espacios</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-2 md:grid-cols-10">
-            {filteredSpaces.map(space => {
-              const config = statusConfig[space.status as keyof typeof statusConfig]
-              const Icon = config.icon
+          {loading ? (
+            <div className="py-12 text-center">
+              <div className="text-muted-foreground mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+              <p className="text-muted-foreground">Cargando espacios...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 gap-2 md:grid-cols-10">
+              {filteredSpaces.map(space => {
+                const config = statusConfig[space.displayStatus as keyof typeof statusConfig]
+                const Icon = config.icon
 
-              return (
-                <button
-                  key={space.id}
-                  onClick={() => setSelectedSpace(space)}
-                  className={`aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
-                    selectedSpace?.id === space.id
-                      ? 'border-blue-600 ring-2 ring-blue-600/20'
-                      : 'border-transparent'
-                  } ${config.bgColor}`}
-                  title={`${space.number} - ${config.label}`}
-                >
-                  <div className="flex h-full flex-col items-center justify-center p-1">
-                    <Icon className={`mb-1 h-4 w-4 ${config.textColor}`} />
-                    <span className={`text-xs font-medium ${config.textColor}`}>
-                      {space.number}
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={space.id}
+                    onClick={() => setSelectedSpace(space)}
+                    className={`aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
+                      selectedSpace?.id === space.id
+                        ? 'border-blue-600 ring-2 ring-blue-600/20'
+                        : 'border-transparent'
+                    } ${config.bgColor}`}
+                    title={`${space.label} - ${config.label}`}
+                  >
+                    <div className="flex h-full flex-col items-center justify-center p-1">
+                      <Icon className={`mb-1 h-4 w-4 ${config.textColor}`} />
+                      <span className={`text-xs font-medium ${config.textColor}`}>
+                        {space.label}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -203,7 +266,7 @@ export function SpaceManagement() {
       {selectedSpace && (
         <Card>
           <CardHeader>
-            <CardTitle>Detalles del Espacio {selectedSpace.number}</CardTitle>
+            <CardTitle>Detalles del Espacio {selectedSpace.label}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -212,48 +275,59 @@ export function SpaceManagement() {
                   <p className="text-muted-foreground mb-1 text-sm">Estado</p>
                   <Badge
                     className={
-                      statusConfig[selectedSpace.status as keyof typeof statusConfig].bgColor
+                      statusConfig[selectedSpace.displayStatus as keyof typeof statusConfig].bgColor
                     }
                   >
                     <span
                       className={
-                        statusConfig[selectedSpace.status as keyof typeof statusConfig].textColor
+                        statusConfig[selectedSpace.displayStatus as keyof typeof statusConfig]
+                          .textColor
                       }
                     >
-                      {statusConfig[selectedSpace.status as keyof typeof statusConfig].label}
+                      {statusConfig[selectedSpace.displayStatus as keyof typeof statusConfig].label}
                     </span>
                   </Badge>
                 </div>
 
                 <div>
-                  <p className="text-muted-foreground mb-1 text-sm">ID del Sensor</p>
-                  <p className="font-mono text-sm">{selectedSpace.sensorId}</p>
+                  <p className="text-muted-foreground mb-1 text-sm">ID del Espacio</p>
+                  <p className="font-mono text-sm">{selectedSpace.id}</p>
                 </div>
 
                 <div>
-                  <p className="text-muted-foreground mb-1 text-sm">Tipo de Espacio</p>
-                  <p className="text-sm capitalize">
-                    {selectedSpace.type === 'regular'
-                      ? 'Regular'
-                      : selectedSpace.type === 'disabled'
-                        ? 'Discapacitados'
-                        : 'Carga Eléctrica'}
+                  <p className="text-muted-foreground mb-1 text-sm">Posición</p>
+                  <p className="text-sm">
+                    Fila {selectedSpace.rowIndex}, Columna {selectedSpace.columnIndex}
                   </p>
                 </div>
+
+                {selectedSpace.device && (
+                  <div>
+                    <p className="text-muted-foreground mb-1 text-sm">Dispositivo IoT</p>
+                    <p className="font-mono text-sm">{selectedSpace.device.macAddress}</p>
+                    <p className="text-muted-foreground text-xs">
+                      Tipo: {selectedSpace.device.type}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <p className="text-muted-foreground mb-1 text-sm">Última Actualización</p>
-                  <p className="text-sm">
-                    {new Date(selectedSpace.lastUpdate).toLocaleString('es-ES')}
-                  </p>
-                </div>
+                {selectedSpace.device?.lastCommunication && (
+                  <div>
+                    <p className="text-muted-foreground mb-1 text-sm">Última Comunicación</p>
+                    <p className="text-sm">
+                      {new Date(selectedSpace.device.lastCommunication).toLocaleString('es-ES')}
+                    </p>
+                  </div>
+                )}
 
                 <div>
-                  <p className="text-muted-foreground mb-1 text-sm">Conexión del Sensor</p>
+                  <p className="text-muted-foreground mb-1 text-sm">Estado del Sensor</p>
                   <div className="flex items-center gap-2">
-                    {selectedSpace.status === 'offline' ? (
+                    {selectedSpace.displayStatus === 'offline' ||
+                    !selectedSpace.device ||
+                    selectedSpace.device.operationalStatus === 'OFFLINE' ? (
                       <>
                         <WifiOff className="h-4 w-4 text-red-600" />
                         <span className="text-sm text-red-600">Sin conexión</span>
@@ -266,6 +340,15 @@ export function SpaceManagement() {
                     )}
                   </div>
                 </div>
+
+                {selectedSpace.device && (
+                  <div>
+                    <p className="text-muted-foreground mb-1 text-sm">Estado Operacional</p>
+                    <p className="text-sm capitalize">
+                      {selectedSpace.device.operationalStatus.toLowerCase()}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

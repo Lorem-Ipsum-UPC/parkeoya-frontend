@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
 import { Eye, EyeOff } from '@/lib/icons'
+import { apiClient } from '@/lib/api/client'
 
 export function RegistrationForm() {
   const router = useRouter()
@@ -23,6 +24,10 @@ export function RegistrationForm() {
     phone: '',
     password: '',
     confirmPassword: '',
+    city: '',
+    country: '',
+    companyName: '',
+    ruc: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,25 +53,44 @@ export function RegistrationForm() {
 
     setIsLoading(true)
 
-    // Simulate API call - replace with actual Supabase auth later
-    setTimeout(() => {
+    try {
+      // Call actual API
+      const user = await apiClient.signUp({
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.name,
+        phone: formData.phone,
+        city: formData.city,
+        country: formData.country,
+        companyName: formData.companyName,
+        ruc: formData.ruc,
+      })
+
+      // Store user data (no token yet, user needs to login)
       localStorage.setItem(
         'parkeoya_user',
         JSON.stringify({
-          id: '1',
-          email: formData.email,
+          id: user.id,
+          email: user.email,
           name: formData.name,
         })
       )
 
       toast({
         title: 'Cuenta creada exitosamente',
-        description: 'Ahora configura tu estacionamiento',
+        description: 'Ahora inicia sesión para configurar tu estacionamiento',
       })
 
-      router.push('/onboarding')
+      router.push('/login')
+    } catch (error) {
+      toast({
+        title: 'Error al crear cuenta',
+        description: error instanceof Error ? error.message : 'Error desconocido',
+        variant: 'destructive',
+      })
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -105,6 +129,60 @@ export function RegistrationForm() {
           placeholder="+593 99 999 9999"
           value={formData.phone}
           onChange={e => setFormData({ ...formData, phone: e.target.value })}
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="city">Ciudad</Label>
+          <Input
+            id="city"
+            type="text"
+            placeholder="Quito"
+            value={formData.city}
+            onChange={e => setFormData({ ...formData, city: e.target.value })}
+            required
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="country">País</Label>
+          <Input
+            id="country"
+            type="text"
+            placeholder="Ecuador"
+            value={formData.country}
+            onChange={e => setFormData({ ...formData, country: e.target.value })}
+            required
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="companyName">Nombre de la Empresa</Label>
+        <Input
+          id="companyName"
+          type="text"
+          placeholder="Mi Estacionamiento S.A."
+          value={formData.companyName}
+          onChange={e => setFormData({ ...formData, companyName: e.target.value })}
+          required
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="ruc">RUC</Label>
+        <Input
+          id="ruc"
+          type="text"
+          placeholder="1234567890001"
+          value={formData.ruc}
+          onChange={e => setFormData({ ...formData, ruc: e.target.value })}
           required
           disabled={isLoading}
         />

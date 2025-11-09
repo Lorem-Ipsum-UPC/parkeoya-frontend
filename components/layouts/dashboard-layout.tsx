@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   Square,
   Calendar,
-  DollarSign,
   Star,
   Settings,
   Menu,
@@ -25,7 +24,6 @@ const navigation = [
   { name: 'Panel General', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Espacios IoT', href: '/dashboard/spaces', icon: Square },
   { name: 'Reservas', href: '/dashboard/reservations', icon: Calendar },
-  { name: 'Finanzas', href: '/dashboard/finances', icon: DollarSign },
   { name: 'Reseñas', href: '/dashboard/reviews', icon: Star },
   { name: 'Configuración', href: '/dashboard/configuration', icon: Settings },
 ]
@@ -37,7 +35,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="bg-background min-h-screen">
-      {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -45,14 +42,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`bg-card fixed top-0 left-0 z-50 h-full w-64 transform border-r transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
-          {/* Logo */}
           <div className="flex items-center justify-between border-b p-6">
             <Link href="/dashboard" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-green-300">
@@ -65,7 +60,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 space-y-1 p-4">
             {navigation.map(item => {
               const isActive = pathname === item.href
@@ -87,7 +81,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* User section */}
           <div className="border-t p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
@@ -112,9 +105,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="lg:pl-64">
-        {/* Mobile header */}
         <header className="bg-card sticky top-0 z-30 border-b lg:hidden">
           <div className="flex items-center justify-between p-4">
             <button onClick={() => setSidebarOpen(true)}>
@@ -130,7 +121,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="p-4 lg:p-8">{children}</main>
       </div>
     </div>
