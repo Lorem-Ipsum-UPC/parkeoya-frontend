@@ -78,7 +78,6 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     closeTime: '20:00',
   })
 
-  // Determinar step actual basado en la ruta
   const getCurrentStep = () => {
     const step = STEPS.find(s => s.path === pathname)
     return step ? step.id : 1
@@ -96,14 +95,12 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       const nextPath = STEPS[nextStep - 1].path
       router.push(nextPath)
     } else {
-      // Completar onboarding - enviar data al backend
       try {
         const user = getCurrentUser()
         if (!user || !user.id) {
           throw new Error('Usuario no encontrado')
         }
 
-        // Mapear data del formulario al formato del backend
         const parkingData: CreateParkingResource = {
           ownerId: user.id,
           name: formData.name,
@@ -121,19 +118,17 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           regularSpots: formData.regularSpaces,
           disabledSpots: formData.disabledSpaces,
           electricSpots: formData.electricSpaces,
-          availableSpots: formData.totalSpaces, // Inicialmente igual al total
+          availableSpots: formData.totalSpaces,
           totalRows: formData.totalRows.toString(),
           totalColumns: formData.totalColumns.toString(),
-          operatingDays: formData.operatingDays.join(','), // Convertir array a string separado por comas
+          operatingDays: formData.operatingDays.join(','),
           open24Hours: formData.is24Hours,
           openingTime: formData.is24Hours ? undefined : formData.openTime,
           closingTime: formData.is24Hours ? undefined : formData.closeTime,
         }
 
-        // Crear el parking en el backend
         await apiClient.createParking(parkingData)
 
-        // Redireccionar al dashboard
         router.push('/dashboard')
       } catch (error) {
         alert('Error al guardar la configuración. Por favor intenta de nuevo.')
@@ -149,7 +144,6 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     }
   }
 
-  // Redireccionar si está en /onboarding sin step específico
   useEffect(() => {
     if (pathname === '/onboarding') {
       router.push('/onboarding/informacion-basica')

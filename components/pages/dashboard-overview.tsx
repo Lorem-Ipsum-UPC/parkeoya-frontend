@@ -31,6 +31,16 @@ export function DashboardOverview() {
   })
   const [recentReservations, setRecentReservations] = useState<ReservationResource[]>([])
   const [parking, setParking] = useState<ParkingResource | null>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -41,7 +51,6 @@ export function DashboardOverview() {
       }
 
       try {
-        // Get user's parking
         const parkings = await apiClient.getParkingsByOwnerId(user.id)
         if (parkings.length === 0) {
           router.push('/onboarding')
@@ -51,29 +60,26 @@ export function DashboardOverview() {
         const userParking = parkings[0]
         setParking(userParking)
 
-        // Get reservations
         const reservations = await apiClient.getReservationsByParkingId(userParking.id)
 
-        // Filter today's reservations
         const today = new Date().toISOString().split('T')[0]
         const todayReservations = reservations.filter(r => r.date === today)
         const activeReservations = reservations.filter(
           r => r.status.toLowerCase() === 'active'
         ).length
 
-        // Get parking spots to calculate occupancy
         const spots = await apiClient.getParkingSpotsByParkingId(userParking.id)
         const occupiedSpots = spots.filter(s => s.status.toLowerCase() === 'occupied').length
+        const availableSpots = userParking.totalSpots - occupiedSpots
 
         setStats({
           totalSpaces: userParking.totalSpots,
           occupiedSpaces: occupiedSpots,
-          availableSpaces: userParking.availableSpots,
+          availableSpaces: availableSpots,
           todayReservations: todayReservations.length,
           activeReservations: activeReservations,
         })
 
-        // Get recent reservations (last 5)
         const sortedReservations = [...reservations]
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .slice(0, 5)
@@ -95,6 +101,23 @@ export function DashboardOverview() {
   const occupancyRate =
     stats.totalSpaces > 0 ? ((stats.occupiedSpaces / stats.totalSpaces) * 100).toFixed(1) : '0'
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -105,14 +128,25 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Panel General</h1>
-        <p className="text-muted-foreground mt-1">Resumen de tu estacionamiento en tiempo real</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Panel General - {parking?.name}</h1>
+          <h3>Dirección: {parking?.address}</h3>
+          <h3>Ciudad: {parking?.city}</h3>
+          <p className="text-muted-foreground mt-1">Resumen de tu estacionamiento en tiempo real</p>
+        </div>
+        <Card className="min-w-fit px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Clock className="text-primary h-6 w-6" />
+            <div className="text-right">
+              <div className="text-2xl font-bold tabular-nums">{formatTime(currentTime)}</div>
+              <div className="text-muted-foreground text-xs capitalize">
+                {formatDate(currentTime)}
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
-
-      {/* Stats Grid */}
-      {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -161,9 +195,7 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      {/* Two Column Layout */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
@@ -223,7 +255,6 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        {/* Recent Reservations */}
         <Card>
           <CardHeader>
             <CardTitle>Reservas Recientes</CardTitle>

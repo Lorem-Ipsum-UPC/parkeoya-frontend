@@ -1,4 +1,3 @@
-// UI Components - Core exports
 export * from './button'
 export * from './input'
 export * from './card'

@@ -22,7 +22,7 @@ import {
 } from '@/lib/icons'
 import { apiClient } from '@/lib/api/client'
 import { getCurrentUser } from '@/lib/auth'
-import type { ReservationResource } from '@/lib/api/types'
+import type { ParkingResource, ReservationResource } from '@/lib/api/types'
 import { useToast } from '@/hooks/use-toast'
 
 const statusConfig = {
@@ -55,6 +55,7 @@ export function ReservationsManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedReservation, setSelectedReservation] = useState<ReservationResource | null>(null)
   const [activeTab, setActiveTab] = useState('all')
+  const [parking, setParking] = useState<ParkingResource | null>(null)
 
   const loadReservations = useCallback(async () => {
     try {
@@ -69,14 +70,15 @@ export function ReservationsManagement() {
         return
       }
 
-      // Get the user's parkings
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
       if (parkings.length === 0) {
         setReservations([])
         return
       }
 
-      // Get reservations for the first parking
+      const userParking = parkings[0]
+      setParking(userParking)
+
       const parkingReservations = await apiClient.getReservationsByParkingId(parkings[0].id)
       setReservations(parkingReservations)
     } catch (error) {
@@ -123,15 +125,13 @@ export function ReservationsManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reservas</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Reservas - {parking?.name}</h1>
         <p className="text-muted-foreground mt-1">
           Gestiona todas las reservas de tu estacionamiento
         </p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
@@ -238,10 +238,9 @@ export function ReservationsManagement() {
                     reservation => {
                       const statusKey =
                         reservation.status.toLowerCase() as keyof typeof statusConfig
-                      const config = statusConfig[statusKey] || statusConfig.scheduled // Fallback to scheduled
+                      const config = statusConfig[statusKey] || statusConfig.scheduled
                       const StatusIcon = config.icon
 
-                      // Calculate duration in hours
                       const startDateTime = new Date(`${reservation.date}T${reservation.startTime}`)
                       const endDateTime = new Date(`${reservation.date}T${reservation.endTime}`)
                       const durationHours = Math.round(
@@ -259,7 +258,6 @@ export function ReservationsManagement() {
                           }`}
                         >
                           <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                            {/* Left: Basic Info */}
                             <div className="flex-1 space-y-2">
                               <div className="flex flex-wrap items-center gap-3">
                                 <span className="font-mono text-sm font-medium">

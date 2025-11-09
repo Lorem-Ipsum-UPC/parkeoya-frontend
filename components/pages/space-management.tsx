@@ -8,10 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Search, Filter, Wifi, WifiOff, CheckCircle2, XCircle } from '@/lib/icons'
 import { apiClient } from '@/lib/api/client'
 import { getCurrentUser } from '@/lib/auth'
-import type { ParkingSpotResource, DeviceResource } from '@/lib/api/types'
+import type { ParkingResource, ParkingSpotResource, DeviceResource } from '@/lib/api/types'
 import { useToast } from '@/hooks/use-toast'
 
-// Map device status to space status
 const getSpaceStatus = (device: DeviceResource | undefined): string => {
   if (!device || device.operationalStatus === 'OFFLINE') return 'offline'
   if (device.spotStatus === 'AVAILABLE') return 'available'
@@ -20,7 +19,6 @@ const getSpaceStatus = (device: DeviceResource | undefined): string => {
   return 'offline'
 }
 
-// Combine parking spot with device data
 interface SpaceWithDevice extends ParkingSpotResource {
   device?: DeviceResource
   displayStatus: string
@@ -63,6 +61,7 @@ export function SpaceManagement() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSpace, setSelectedSpace] = useState<SpaceWithDevice | null>(null)
+  const [parking, setParking] = useState<ParkingResource | null>(null)
 
   const loadSpaces = useCallback(async () => {
     try {
@@ -77,27 +76,23 @@ export function SpaceManagement() {
         return
       }
 
-      // Get the user's parkings
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
       if (parkings.length === 0) {
         setSpaces([])
         return
       }
 
-      // Get parking spots
+      const userParking = parkings[0]
+      setParking(userParking)
       const parkingSpots = await apiClient.getParkingSpotsByParkingId(parkings[0].id)
-
-      // Get edge servers for this parking
       const edgeServers = await apiClient.getEdgeServersByParkingId(parkings[0].id)
 
-      // Get devices for each edge server and combine
       let allDevices: DeviceResource[] = []
       for (const edgeServer of edgeServers) {
         const devices = await apiClient.getDevicesByEdgeServerId(edgeServer.serverId)
         allDevices = [...allDevices, ...devices]
       }
 
-      // Combine spots with device data
       const spacesWithDevices: SpaceWithDevice[] = parkingSpots.map(spot => {
         const device = allDevices.find(d => d.parkingSpotId === spot.id)
         return {
@@ -136,10 +131,9 @@ export function SpaceManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Espacios IoT</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Espacios IoT - {parking?.name}</h1>
           <p className="text-muted-foreground mt-1">Monitoreo en tiempo real de sensores</p>
         </div>
         <div className="flex items-center gap-2">
@@ -152,7 +146,6 @@ export function SpaceManagement() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
@@ -203,7 +196,6 @@ export function SpaceManagement() {
         </Card>
       </div>
 
-      {/* Search and Filters */}
       <div className="flex flex-col gap-3 md:flex-row">
         <div className="relative flex-1">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
@@ -220,7 +212,6 @@ export function SpaceManagement() {
         </Button>
       </div>
 
-      {/* Space Grid */}
       <Card>
         <CardHeader>
           <CardTitle>Matriz de Espacios</CardTitle>
@@ -262,7 +253,6 @@ export function SpaceManagement() {
         </CardContent>
       </Card>
 
-      {/* Space Details */}
       {selectedSpace && (
         <Card>
           <CardHeader>
@@ -288,19 +278,16 @@ export function SpaceManagement() {
                     </span>
                   </Badge>
                 </div>
-
                 <div>
                   <p className="text-muted-foreground mb-1 text-sm">ID del Espacio</p>
                   <p className="font-mono text-sm">{selectedSpace.id}</p>
                 </div>
-
                 <div>
                   <p className="text-muted-foreground mb-1 text-sm">Posición</p>
                   <p className="text-sm">
                     Fila {selectedSpace.rowIndex}, Columna {selectedSpace.columnIndex}
                   </p>
                 </div>
-
                 {selectedSpace.device && (
                   <div>
                     <p className="text-muted-foreground mb-1 text-sm">Dispositivo IoT</p>
@@ -311,7 +298,6 @@ export function SpaceManagement() {
                   </div>
                 )}
               </div>
-
               <div className="space-y-4">
                 {selectedSpace.device?.lastCommunication && (
                   <div>
@@ -321,7 +307,6 @@ export function SpaceManagement() {
                     </p>
                   </div>
                 )}
-
                 <div>
                   <p className="text-muted-foreground mb-1 text-sm">Estado del Sensor</p>
                   <div className="flex items-center gap-2">
@@ -340,7 +325,6 @@ export function SpaceManagement() {
                     )}
                   </div>
                 </div>
-
                 {selectedSpace.device && (
                   <div>
                     <p className="text-muted-foreground mb-1 text-sm">Estado Operacional</p>

@@ -41,14 +41,12 @@ export function ReviewsManagement() {
         return
       }
 
-      // First get the user's parkings
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
       if (parkings.length === 0) {
         setReviews([])
         return
       }
 
-      // Get reviews for the first parking (assuming single parking for now)
       const parkingReviews = await apiClient.getReviewsByParkingId(parkings[0].id)
       setReviews(parkingReviews)
     } catch (error) {
@@ -62,7 +60,6 @@ export function ReviewsManagement() {
     }
   }, [toast])
 
-  // Load reviews on component mount
   useEffect(() => {
     loadReviews()
   }, [loadReviews])
@@ -86,7 +83,6 @@ export function ReviewsManagement() {
       2: reviews.filter(r => r.rating === 2).length,
       1: reviews.filter(r => r.rating === 1).length,
     }
-    // For now, response rate is 0 since backend doesn't support responses yet
     const responseRate = 0
 
     return { total, avgRating, distribution, responseRate }
@@ -111,11 +107,10 @@ export function ReviewsManagement() {
   const filterReviews = () => {
     let filtered = reviews
 
-    // For now, all reviews are considered "responded" since backend doesn't support responses
     if (activeTab === 'pending') {
-      filtered = [] // No pending reviews since responses aren't implemented yet
+      filtered = []
     } else if (activeTab === 'responded') {
-      filtered = reviews // All reviews are "responded" for now
+      filtered = reviews
     }
 
     if (filterRating !== 'all') {

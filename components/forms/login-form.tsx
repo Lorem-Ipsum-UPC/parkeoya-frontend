@@ -26,35 +26,30 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      // Call actual API
       const response = await apiClient.signIn({
         email: formData.email,
         password: formData.password,
       })
 
-      // Store token and user data
       localStorage.setItem('parkeoya_token', response.token)
       localStorage.setItem(
         'parkeoya_user',
         JSON.stringify({
           id: response.id,
           email: response.email,
-          name: 'Usuario', // We don't have name in AuthResponse, will get from profile later
+          name: 'Usuario',
         })
       )
 
-      // Check if user has a parking registered
       try {
         const parkings = await apiClient.getParkingsByOwnerId(response.id)
         if (parkings.length === 0) {
-          // First time user, redirect to onboarding
           toast({
             title: 'Bienvenido a ParkeoYa',
             description: 'Completa el registro de tu estacionamiento',
           })
           router.push('/onboarding')
         } else {
-          // User already has parking, redirect to dashboard
           toast({
             title: 'Inicio de sesión exitoso',
             description: 'Bienvenido de nuevo a ParkeoYa',
@@ -62,7 +57,6 @@ export function LoginForm() {
           router.push('/dashboard')
         }
       } catch (error) {
-        // If error checking parkings, redirect to onboarding to be safe
         router.push('/onboarding')
       }
     } catch (error) {

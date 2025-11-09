@@ -29,26 +29,21 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    // Basic Info
     name: '',
     description: '',
-    // Location
     address: '',
     city: '',
     province: '',
     zipCode: '',
     latitude: '',
     longitude: '',
-    // Capacity
     totalSpaces: '',
     regularSpaces: '',
     disabledSpaces: '',
     electricSpaces: '',
-    // Pricing
     hourlyRate: '',
     dailyRate: '',
     monthlyRate: '',
-    // Schedule
     operatingDays: [] as string[],
     openTime: '08:00',
     closeTime: '20:00',
@@ -59,7 +54,6 @@ export default function OnboardingPage() {
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1)
     } else {
-      // Last step - create parking and spots in backend
       await handleFinish()
     }
   }
@@ -78,7 +72,6 @@ export default function OnboardingPage() {
         return
       }
 
-      // Create parking
       const parkingData = {
         ownerId: user.id,
         name: formData.name,
@@ -97,7 +90,7 @@ export default function OnboardingPage() {
         disabledSpots: formData.disabledSpaces,
         electricSpots: formData.electricSpaces,
         availableSpots: formData.totalSpaces,
-        totalRows: '10', // Default values
+        totalRows: '10',
         totalColumns: '10',
         operatingDays: formData.operatingDays.join(','),
         open24Hours: formData.is24Hours,
@@ -112,7 +105,6 @@ export default function OnboardingPage() {
         description: 'Creando espacios de parqueo...',
       })
 
-      // Create parking spots automatically
       const totalSpots = parseInt(formData.totalSpaces)
       const disabledSpots = parseInt(formData.disabledSpaces) || 0
       const electricSpots = parseInt(formData.electricSpaces) || 0
@@ -122,9 +114,8 @@ export default function OnboardingPage() {
       let spotIndex = 1
       let row = 0
       let col = 0
-      const spotsPerRow = 10 // Default: 10 spots per row
+      const spotsPerRow = 10
 
-      // Create disabled spots first
       for (let i = 0; i < disabledSpots; i++) {
         const label = `D-${String(spotIndex).padStart(2, '0')}`
         await apiClient.addParkingSpot(parking.id, {
@@ -140,7 +131,6 @@ export default function OnboardingPage() {
         }
       }
 
-      // Create electric spots
       for (let i = 0; i < electricSpots; i++) {
         const label = `E-${String(spotIndex).padStart(2, '0')}`
         await apiClient.addParkingSpot(parking.id, {
@@ -156,7 +146,6 @@ export default function OnboardingPage() {
         }
       }
 
-      // Create regular spots
       for (let i = 0; i < regularSpots; i++) {
         const label = `R-${String(spotIndex).padStart(2, '0')}`
         await apiClient.addParkingSpot(parking.id, {
@@ -177,7 +166,6 @@ export default function OnboardingPage() {
         description: `Se crearon ${totalSpots} espacios de parqueo exitosamente`,
       })
 
-      // Save to localStorage and redirect to dashboard
       localStorage.setItem('parkeoya_parking', JSON.stringify(formData))
       router.push('/dashboard')
     } catch (error) {
@@ -205,7 +193,6 @@ export default function OnboardingPage() {
   return (
     <ProtectedRoute>
       <div className="bg-background min-h-screen">
-        {/* Header */}
         <header className="bg-card border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
@@ -220,7 +207,6 @@ export default function OnboardingPage() {
           </div>
         </header>
 
-        {/* Main Content */}
         <div className="container mx-auto max-w-4xl px-4 py-8">
           <OnboardingSteps steps={STEPS} currentStep={currentStep} />
 

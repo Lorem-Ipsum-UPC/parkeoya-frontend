@@ -9,9 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Primary Colors
         primary: {
-          DEFAULT: '#1295c0', // Azul principal
+          DEFAULT: '#1295c0',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bae6fd',
@@ -24,7 +23,7 @@ const config: Config = {
           900: '#0c4a6e',
         },
         success: {
-          DEFAULT: '#34ca69', // Verde principal
+          DEFAULT: '#34ca69',
           50: '#f0fdf4',
           100: '#dcfce7',
           200: '#bbf7d0',
@@ -36,24 +35,22 @@ const config: Config = {
           800: '#166534',
           900: '#14532d',
         },
-        // Severity Colors
         info: {
-          DEFAULT: '#28A745', // Verde info
+          DEFAULT: '#28A745',
           500: '#28A745',
         },
         warning: {
-          DEFAULT: '#FFC107', // Amarillo warning
+          DEFAULT: '#FFC107',
           500: '#FFC107',
         },
         danger: {
-          DEFAULT: '#DC3545', // Rojo danger
+          DEFAULT: '#DC3545',
           500: '#DC3545',
         },
         secondary: {
-          DEFAULT: '#6C757D', // Gris secundario
+          DEFAULT: '#6C757D',
           500: '#6C757D',
         },
-        // Mantener compatibilidad con shadcn/ui
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

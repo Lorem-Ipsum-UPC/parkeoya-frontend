@@ -1,6 +1,3 @@
-// API Types based on ParkeoYa Backend OpenAPI specification
-
-// Authentication types
 export interface SignInResource {
   email: string
   password: string
@@ -39,8 +36,6 @@ export interface UserResource {
   email: string
   roles: string[]
 }
-
-// Parking types
 export interface CreateParkingResource {
   ownerId: number
   name: string
@@ -98,6 +93,29 @@ export interface ParkingResource {
   closingTime?: string
 }
 
+export interface UpdateParkingResource {
+  name?: string
+  description?: string
+  address?: string
+  city?: string
+  province?: string
+  postalCode?: string
+  lat?: number
+  lng?: number
+  ratePerHour?: number
+  dailyRate?: number
+  monthlyRate?: number
+  open24hours?: boolean
+  openingTime?: string
+  closingTime?: string
+  operatingDays?: string
+  imageUrl?: string
+  totalSpots?: number
+  regularSpots?: number
+  disabledSpots?: number
+  electricSpots?: number
+}
+
 export interface AddParkingSpotResource {
   row: number
   column: number
@@ -112,8 +130,6 @@ export interface ParkingSpotResource {
   label: string
   status: string
 }
-
-// Edge Server types
 export interface CreateEdgeServerResource {
   serverId: string
   apiKey: string
@@ -134,8 +150,6 @@ export interface EdgeServerResource {
   connectedDevicesCount: number
   parkingId: number
 }
-
-// Device types
 export interface UpdateDeviceResource {
   edgeId?: string
   macAddress?: string
@@ -154,8 +168,6 @@ export interface DeviceResource {
   edgeServerId?: string
   lastCommunication?: string
 }
-
-// Reservation types
 export interface CreateReservationResource {
   driverId: number
   vehiclePlate: string
@@ -180,8 +192,6 @@ export interface ReservationResource {
   totalPrice: number
   status: string
 }
-
-// Payment types
 export interface CreatePaymentResource {
   userId: number
   amount: number
@@ -198,8 +208,6 @@ export interface PaymentResource {
   reservationId: number
   subscriptionId?: number
 }
-
-// Review types
 export interface CreateReviewResource {
   driverId: number
   parkingId: number
@@ -217,8 +225,6 @@ export interface ReviewResource {
   rating: number
   createdAt: string
 }
-
-// Profile types
 export interface ParkingOwnerResource {
   userId: number
   parkingOwnerId: number
@@ -230,6 +236,15 @@ export interface ParkingOwnerResource {
   ruc: string
 }
 
+export interface UpdateParkingOwnerResource {
+  fullName?: string
+  city?: string
+  country?: string
+  phone?: string
+  companyName?: string
+  ruc?: string
+}
+
 export interface DriverResource {
   userId: number
   driverId: number
@@ -239,21 +254,15 @@ export interface DriverResource {
   phone: string
   dni: string
 }
-
-// Role types
 export interface RoleResource {
   id: number
   name: string
 }
-
-// Error types
 export interface ApiError {
   message: string
   status?: number
   timestamp?: string
 }
-
-// Legacy types (for backward compatibility)
 export interface AuthResponse {
   id: number
   email: string

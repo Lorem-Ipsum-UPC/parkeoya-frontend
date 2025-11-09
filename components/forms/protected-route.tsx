@@ -19,25 +19,20 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Skip parking check if already on onboarding
       if (pathname?.startsWith('/onboarding')) {
         setIsChecking(false)
         return
       }
 
-      // Check if user has a parking registered
       const user = getCurrentUser()
       if (user?.id) {
         try {
           const parkings = await apiClient.getParkingsByOwnerId(user.id)
           if (parkings.length === 0) {
-            // User doesn't have a parking, redirect to onboarding
             router.push('/onboarding')
             return
           }
-        } catch (error) {
-          // If error, let user proceed but they might get redirected later
-        }
+        } catch (error) {}
       }
 
       setIsChecking(false)

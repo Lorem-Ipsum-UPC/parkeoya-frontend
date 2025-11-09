@@ -1,18 +1,48 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Building2, User, Edit, Save, X } from '@/lib/icons'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Building2, User, Edit, Save, X, Clock } from '@/lib/icons'
 import { apiClient } from '@/lib/api/client'
 import { getCurrentUser } from '@/lib/auth'
 import { useToast } from '@/hooks/use-toast'
 import type { ParkingResource, ParkingOwnerProfile } from '@/lib/api/types'
-import { formatTimeDisplay } from '@/lib/utils'
+import { formatTimeDisplay, formatTimeForBackend } from '@/lib/utils'
+
+const DAYS = [
+  { id: 'monday', label: 'Lunes' },
+  { id: 'tuesday', label: 'Martes' },
+  { id: 'wednesday', label: 'Miércoles' },
+  { id: 'thursday', label: 'Jueves' },
+  { id: 'friday', label: 'Viernes' },
+  { id: 'saturday', label: 'Sábado' },
+  { id: 'sunday', label: 'Domingo' },
+]
+
+const parseDaysString = (daysString: string): string[] => {
+  if (!daysString) return []
+  if (daysString.includes(',')) {
+    return daysString.split(',').map(d => d.trim().toLowerCase())
+  }
+  const lowerDays = daysString.toLowerCase()
+  const matchedDays: string[] = []
+  DAYS.forEach(day => {
+    if (lowerDays.includes(day.label.toLowerCase()) || lowerDays.includes(day.id)) {
+      matchedDays.push(day.id)
+    }
+  })
+  return matchedDays
+}
+
+const formatDaysArray = (days: string[]): string => {
+  return days.join(',')
+}
 
 export function SettingsPage() {
   const router = useRouter()
@@ -22,7 +52,35 @@ export function SettingsPage() {
   const [parking, setParking] = useState<ParkingResource | null>(null)
   const [profile, setProfile] = useState<ParkingOwnerProfile | null>(null)
 
-  // Form states
+  const DAYS = [
+    { id: 'monday', label: 'Lunes' },
+    { id: 'tuesday', label: 'Martes' },
+    { id: 'wednesday', label: 'Miércoles' },
+    { id: 'thursday', label: 'Jueves' },
+    { id: 'friday', label: 'Viernes' },
+    { id: 'saturday', label: 'Sábado' },
+    { id: 'sunday', label: 'Domingo' },
+  ]
+
+  const parseDaysString = (daysString: string): string[] => {
+    if (!daysString) return []
+    if (daysString.includes(',')) {
+      return daysString.split(',').map(d => d.trim().toLowerCase())
+    }
+    const lowerDays = daysString.toLowerCase()
+    const matchedDays: string[] = []
+    DAYS.forEach(day => {
+      if (lowerDays.includes(day.label.toLowerCase()) || lowerDays.includes(day.id)) {
+        matchedDays.push(day.id)
+      }
+    })
+    return matchedDays
+  }
+
+  const formatDaysArray = (days: string[]): string => {
+    return days.join(',')
+  }
+
   const [parkingForm, setParkingForm] = useState({
     name: '',
     description: '',
@@ -33,7 +91,7 @@ export function SettingsPage() {
     ratePerHour: 0,
     dailyRate: 0,
     monthlyRate: 0,
-    operatingDays: '',
+    operatingDays: [] as string[],
     open24Hours: false,
     openingTime: '',
     closingTime: '',
@@ -48,7 +106,7 @@ export function SettingsPage() {
     ruc: '',
   })
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     const user = getCurrentUser()
     if (!user?.id) {
       router.push('/login')
@@ -56,7 +114,6 @@ export function SettingsPage() {
     }
 
     try {
-      // Get user's parking
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
       if (parkings.length === 0) {
         router.push('/onboarding')
@@ -75,13 +132,12 @@ export function SettingsPage() {
         ratePerHour: userParking.ratePerHour,
         dailyRate: userParking.dailyRate,
         monthlyRate: userParking.monthlyRate,
-        operatingDays: userParking.operatingDays,
+        operatingDays: parseDaysString(userParking.operatingDays),
         open24Hours: userParking.open24Hours,
         openingTime: userParking.openingTime ? formatTimeDisplay(userParking.openingTime) : '',
         closingTime: userParking.closingTime ? formatTimeDisplay(userParking.closingTime) : '',
       })
 
-      // Get owner profile
       const ownerProfile = await apiClient.getParkingOwnerProfile(user.id)
       setProfile(ownerProfile)
       setProfileForm({
@@ -101,15 +157,15 @@ export function SettingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [router, toast])
+  }
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleCancel = () => {
     setIsEditing(false)
-    // Reset forms to original values
     if (parking) {
       setParkingForm({
         name: parking.name,
@@ -121,7 +177,7 @@ export function SettingsPage() {
         ratePerHour: parking.ratePerHour,
         dailyRate: parking.dailyRate,
         monthlyRate: parking.monthlyRate,
-        operatingDays: parking.operatingDays,
+        operatingDays: parseDaysString(parking.operatingDays),
         open24Hours: parking.open24Hours,
         openingTime: parking.openingTime ? formatTimeDisplay(parking.openingTime) : '',
         closingTime: parking.closingTime ? formatTimeDisplay(parking.closingTime) : '',
@@ -140,12 +196,85 @@ export function SettingsPage() {
   }
 
   const handleSave = async () => {
-    // TODO: Implement save functionality when backend supports update endpoints
-    toast({
-      title: 'Información',
-      description: 'La funcionalidad de actualización estará disponible próximamente',
-    })
-    setIsEditing(false)
+    if (!parking?.id) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró el ID del estacionamiento',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!profile?.parkingOwnerId) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró el ID del propietario',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const parkingUpdateData = {
+        name: parkingForm.name,
+        description: parkingForm.description,
+        address: parkingForm.address,
+        city: parkingForm.city,
+        province: parkingForm.province,
+        postalCode: parkingForm.postalCode,
+        ratePerHour: parkingForm.ratePerHour,
+        dailyRate: parkingForm.dailyRate,
+        monthlyRate: parkingForm.monthlyRate,
+        operatingDays: formatDaysArray(parkingForm.operatingDays),
+        open24hours: parkingForm.open24Hours,
+        openingTime: parkingForm.open24Hours
+          ? undefined
+          : formatTimeForBackend(parkingForm.openingTime),
+        closingTime: parkingForm.open24Hours
+          ? undefined
+          : formatTimeForBackend(parkingForm.closingTime),
+      }
+
+      const profileUpdateData = {
+        fullName: profileForm.fullName,
+        city: profileForm.city,
+        country: profileForm.country,
+        phone: profileForm.phone,
+        companyName: profileForm.companyName,
+        ruc: profileForm.ruc,
+      }
+
+      const [updatedParking, updatedProfile] = await Promise.all([
+        apiClient.updateParking(parking.id, parkingUpdateData),
+        apiClient.updateParkingOwnerProfile(profile.parkingOwnerId, profileUpdateData),
+      ])
+
+      setParking(updatedParking)
+      setProfile(updatedProfile)
+      setIsEditing(false)
+
+      toast({
+        title: 'Éxito',
+        description: 'La configuración se actualizó correctamente',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar la configuración',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const toggleDay = (dayId: string) => {
+    const newDays = parkingForm.operatingDays.includes(dayId)
+      ? parkingForm.operatingDays.filter(d => d !== dayId)
+      : [...parkingForm.operatingDays, dayId]
+    setParkingForm({ ...parkingForm, operatingDays: newDays })
+  }
+
+  const selectAllDays = () => {
+    setParkingForm({ ...parkingForm, operatingDays: DAYS.map(d => d.id) })
   }
 
   if (loading) {
@@ -302,43 +431,97 @@ export function SettingsPage() {
               />
             </div>
 
-            {/* Horarios */}
-            <div className="space-y-2">
-              <Label htmlFor="operatingDays">Días de Operación</Label>
-              <Input
-                id="operatingDays"
-                value={parkingForm.operatingDays}
-                onChange={e => setParkingForm({ ...parkingForm, operatingDays: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Lunes a Viernes"
-              />
+            {/* Días de Operación */}
+            <div className="space-y-4 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label>Días de Operación</Label>
+                {isEditing && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={selectAllDays}
+                    className="text-primary h-auto p-0"
+                  >
+                    Seleccionar todos
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {DAYS.map(day => (
+                  <div key={day.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={day.id}
+                      checked={parkingForm.operatingDays.includes(day.id)}
+                      onCheckedChange={() => toggleDay(day.id)}
+                      disabled={!isEditing}
+                    />
+                    <label
+                      htmlFor={day.id}
+                      className={`text-sm ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
+                    >
+                      {day.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {!parkingForm.open24Hours && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="openingTime">Hora de Apertura</Label>
-                  <Input
-                    id="openingTime"
-                    type="time"
-                    value={parkingForm.openingTime}
-                    onChange={e => setParkingForm({ ...parkingForm, openingTime: e.target.value })}
-                    disabled={!isEditing}
-                  />
-                </div>
+            {/* Horario de Atención */}
+            <div className="space-y-4 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="open24Hours"
+                  checked={parkingForm.open24Hours}
+                  onCheckedChange={(checked: boolean) =>
+                    setParkingForm({ ...parkingForm, open24Hours: checked })
+                  }
+                  disabled={!isEditing}
+                />
+                <label
+                  htmlFor="open24Hours"
+                  className={`text-sm font-medium ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
+                >
+                  Abierto 24 horas
+                </label>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="closingTime">Hora de Cierre</Label>
-                  <Input
-                    id="closingTime"
-                    type="time"
-                    value={parkingForm.closingTime}
-                    onChange={e => setParkingForm({ ...parkingForm, closingTime: e.target.value })}
-                    disabled={!isEditing}
-                  />
+              {!parkingForm.open24Hours && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="openingTime" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      Hora de Apertura
+                    </Label>
+                    <Input
+                      id="openingTime"
+                      type="time"
+                      value={parkingForm.openingTime}
+                      onChange={e =>
+                        setParkingForm({ ...parkingForm, openingTime: e.target.value })
+                      }
+                      disabled={!isEditing}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="closingTime" className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      Hora de Cierre
+                    </Label>
+                    <Input
+                      id="closingTime"
+                      type="time"
+                      value={parkingForm.closingTime}
+                      onChange={e =>
+                        setParkingForm({ ...parkingForm, closingTime: e.target.value })
+                      }
+                      disabled={!isEditing}
+                    />
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

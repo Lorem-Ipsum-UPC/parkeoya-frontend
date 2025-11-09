@@ -9,6 +9,7 @@ import type {
   ParkingResponse,
   CreateParkingResource,
   ParkingResource,
+  UpdateParkingResource,
   AddParkingSpotResource,
   ParkingSpotResource,
   CreateEdgeServerResource,
@@ -20,16 +21,13 @@ import type {
   CreateReviewResource,
   ReviewResource,
   ParkingOwnerResource,
+  UpdateParkingOwnerResource,
   DriverResource,
   RoleResource,
   DeviceResource,
   UpdateDeviceResource,
 } from './types'
 
-// Use NEXT_PUBLIC_API_URL when provided, otherwise default to the deployed backend
-// NOTE: default is set to the deployed backend domain (no trailing slash). If you
-// prefer to point to the Swagger UI directly, set NEXT_PUBLIC_API_URL in your
-// environment to the full swagger URL provided by the backend.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
 class ApiClient {
@@ -77,7 +75,6 @@ class ApiClient {
     }
   }
 
-  // Auth endpoints
   async signUp(data: SignUpRequest): Promise<User> {
     return this.request<User>('/api/v1/authentication/sign-up/parking-owner', {
       method: 'POST',
@@ -92,7 +89,6 @@ class ApiClient {
     })
   }
 
-  // User endpoints
   async getUsers(): Promise<User[]> {
     return this.request<User[]>('/api/v1/users')
   }
@@ -101,16 +97,24 @@ class ApiClient {
     return this.request<User>(`/api/v1/users/${id}`)
   }
 
-  // Profile endpoints
   async getParkingOwnerProfile(userId: number): Promise<ParkingOwnerProfile> {
     return this.request<ParkingOwnerProfile>(`/api/v1/profiles/parking-owner/${userId}`)
+  }
+
+  async updateParkingOwnerProfile(
+    parkingOwnerId: number,
+    data: UpdateParkingOwnerResource
+  ): Promise<ParkingOwnerResource> {
+    return this.request<ParkingOwnerResource>(`/api/v1/profiles/parking-owner/${parkingOwnerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
   }
 
   async getDriverProfile(userId: number): Promise<DriverResource> {
     return this.request<DriverResource>(`/api/v1/profiles/driver/${userId}`)
   }
 
-  // Parking endpoints
   async createParking(data: CreateParkingRequest): Promise<ParkingResponse> {
     return this.request<ParkingResponse>('/api/v1/parkings', {
       method: 'POST',
@@ -130,7 +134,13 @@ class ApiClient {
     return this.request<ParkingResource[]>(`/api/v1/parkings/owner/${ownerId}`)
   }
 
-  // Parking spots endpoints
+  async updateParking(parkingId: number, data: UpdateParkingResource): Promise<ParkingResource> {
+    return this.request<ParkingResource>(`/api/v1/parkings/${parkingId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async getParkingSpotsByParkingId(parkingId: number): Promise<ParkingSpotResource[]> {
     return this.request<ParkingSpotResource[]>(`/api/v1/parkings/${parkingId}/spots`)
   }
@@ -145,7 +155,6 @@ class ApiClient {
     })
   }
 
-  // Edge server endpoints
   async createEdgeServer(data: CreateEdgeServerResource): Promise<EdgeServerResource> {
     return this.request<EdgeServerResource>('/api/v1/edge-servers', {
       method: 'POST',
@@ -157,7 +166,6 @@ class ApiClient {
     return this.request<EdgeServerResource[]>(`/api/v1/edge-servers/parking/${parkingId}`)
   }
 
-  // Device endpoints
   async updateDevice(deviceId: string, data: UpdateDeviceResource): Promise<DeviceResource> {
     return this.request<DeviceResource>(`/api/v1/devices/${deviceId}`, {
       method: 'PUT',
@@ -182,7 +190,6 @@ class ApiClient {
     return this.request<DeviceResource[]>(`/api/v1/devices/edge-server/${edgeServerId}`)
   }
 
-  // Reservation endpoints
   async createReservation(data: CreateReservationResource): Promise<ReservationResource> {
     return this.request<ReservationResource>('/api/v1/reservations', {
       method: 'POST',
@@ -215,7 +222,6 @@ class ApiClient {
     )
   }
 
-  // Payment endpoints
   async createReservationPayment(
     reservationId: number,
     data: CreatePaymentResource
@@ -226,7 +232,6 @@ class ApiClient {
     })
   }
 
-  // Review endpoints
   async createReview(data: CreateReviewResource): Promise<ReviewResource> {
     return this.request<ReviewResource>('/api/v1/reviews', {
       method: 'POST',
@@ -242,7 +247,6 @@ class ApiClient {
     return this.request<ReviewResource[]>(`/api/v1/reviews/driver/${driverId}`)
   }
 
-  // Notification endpoints
   async sendNotification(token: string, title: string, body: string): Promise<string> {
     return this.request<string>(
       `/api/v1/notifications/send?token=${encodeURIComponent(token)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`,
@@ -270,7 +274,6 @@ class ApiClient {
     )
   }
 
-  // Role endpoints
   async getAllRoles(): Promise<RoleResource[]> {
     return this.request<RoleResource[]>('/api/v1/roles')
   }

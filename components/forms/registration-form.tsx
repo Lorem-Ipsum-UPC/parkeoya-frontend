@@ -54,7 +54,6 @@ export function RegistrationForm() {
     setIsLoading(true)
 
     try {
-      // Call actual API
       const user = await apiClient.signUp({
         email: formData.email,
         password: formData.password,
@@ -66,7 +65,6 @@ export function RegistrationForm() {
         ruc: formData.ruc,
       })
 
-      // Store user data (no token yet, user needs to login)
       localStorage.setItem(
         'parkeoya_user',
         JSON.stringify({
