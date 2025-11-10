@@ -26,22 +26,22 @@ import type { ParkingResource, ReservationResource } from '@/lib/api/types'
 import { useToast } from '@/hooks/use-toast'
 
 const statusConfig = {
-  active: {
+  CONFIRMED: {
     label: 'Activa',
     color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     icon: CheckCircle2,
   },
-  scheduled: {
+  PENDING: {
     label: 'Programada',
     color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     icon: Clock,
   },
-  completed: {
+  COMPLETED: {
     label: 'Completada',
     color: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
     icon: CheckCircle2,
   },
-  cancelled: {
+  CANCELED: {
     label: 'Cancelada',
     color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     icon: XCircle,
@@ -56,6 +56,13 @@ export function ReservationsManagement() {
   const [selectedReservation, setSelectedReservation] = useState<ReservationResource | null>(null)
   const [activeTab, setActiveTab] = useState('all')
   const [parking, setParking] = useState<ParkingResource | null>(null)
+
+  useEffect(() => {
+    document.title = 'Reservas - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
 
   const loadReservations = useCallback(async () => {
     try {
@@ -96,31 +103,48 @@ export function ReservationsManagement() {
     loadReservations()
   }, [loadReservations])
 
-  const filterReservations = (status?: string) => {
+  // Filtrar reservaciones por búsqueda y tab activo
+  const filteredReservations = useCallback(() => {
     let filtered = reservations
 
-    if (status && status !== 'all') {
-      filtered = filtered.filter(r => r.status.toLowerCase() === status)
+    // Mapear tabs del frontend a estados del backend
+    const tabToBackendStatus: { [key: string]: string } = {
+      all: 'all',
+      active: 'CONFIRMED',
+      scheduled: 'PENDING',
+      completed: 'COMPLETED',
+      cancelled: 'CANCELED',
     }
 
-    if (searchQuery) {
+    // Filtrar por estado (tab)
+    if (activeTab !== 'all') {
+      const backendStatus = tabToBackendStatus[activeTab]
+      filtered = filtered.filter(r => {
+        if (!r.status) return false
+        return r.status === backendStatus
+      })
+    }
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
       filtered = filtered.filter(
         r =>
-          r.id.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.driverFullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.spotLabel.toLowerCase().includes(searchQuery.toLowerCase())
+          r.id.toString().includes(query) ||
+          (r.driverFullName && r.driverFullName.toLowerCase().includes(query)) ||
+          (r.vehiclePlate && r.vehiclePlate.toLowerCase().includes(query)) ||
+          (r.spotLabel && r.spotLabel.toLowerCase().includes(query))
       )
     }
 
     return filtered
-  }
+  }, [reservations, activeTab, searchQuery])
 
   const stats = {
-    active: reservations.filter(r => r.status.toLowerCase() === 'active').length,
-    scheduled: reservations.filter(r => r.status.toLowerCase() === 'scheduled').length,
-    completed: reservations.filter(r => r.status.toLowerCase() === 'completed').length,
-    cancelled: reservations.filter(r => r.status.toLowerCase() === 'cancelled').length,
+    active: reservations.filter(r => r.status === 'CONFIRMED').length,
+    scheduled: reservations.filter(r => r.status === 'PENDING').length,
+    completed: reservations.filter(r => r.status === 'COMPLETED').length,
+    cancelled: reservations.filter(r => r.status === 'CANCELED').length,
   }
 
   return (
@@ -234,89 +258,86 @@ export function ReservationsManagement() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filterReservations(activeTab === 'all' ? undefined : activeTab).map(
-                    reservation => {
-                      const statusKey =
-                        reservation.status.toLowerCase() as keyof typeof statusConfig
-                      const config = statusConfig[statusKey] || statusConfig.scheduled
-                      const StatusIcon = config.icon
+                  {filteredReservations().map(reservation => {
+                    const statusKey = (reservation.status || 'PENDING') as keyof typeof statusConfig
+                    const config = statusConfig[statusKey] || statusConfig.PENDING
+                    const StatusIcon = config.icon
 
-                      const startDateTime = new Date(`${reservation.date}T${reservation.startTime}`)
-                      const endDateTime = new Date(`${reservation.date}T${reservation.endTime}`)
-                      const durationHours = Math.round(
-                        (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60)
-                      )
+                    const startDateTime = new Date(`${reservation.date}T${reservation.startTime}`)
+                    const endDateTime = new Date(`${reservation.date}T${reservation.endTime}`)
+                    const durationHours = Math.round(
+                      (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60)
+                    )
 
-                      return (
-                        <button
-                          key={reservation.id}
-                          onClick={() => setSelectedReservation(reservation)}
-                          className={`w-full rounded-lg border p-4 text-left transition-all hover:shadow-md ${
-                            selectedReservation?.id === reservation.id
-                              ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/20'
-                              : 'border-border hover:border-blue-300'
-                          }`}
-                        >
-                          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                            <div className="flex-1 space-y-2">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="font-mono text-sm font-medium">
-                                  RES-{reservation.id}
-                                </span>
-                                <Badge className={config.color}>
-                                  <StatusIcon className="mr-1 h-3 w-3" />
-                                  {config.label}
-                                </Badge>
-                              </div>
-
-                              <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-sm">
-                                <div className="flex items-center gap-1">
-                                  <User className="h-4 w-4" />
-                                  <span>{reservation.driverFullName}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Car className="h-4 w-4" />
-                                  <span>{reservation.vehiclePlate}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>Espacio {reservation.spotLabel}</span>
-                                </div>
-                              </div>
+                    return (
+                      <button
+                        key={reservation.id}
+                        onClick={() => setSelectedReservation(reservation)}
+                        className={`w-full rounded-lg border p-4 text-left transition-all hover:shadow-md ${
+                          selectedReservation?.id === reservation.id
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/20'
+                            : 'border-border hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="font-mono text-sm font-medium">
+                                RES-{reservation.id}
+                              </span>
+                              <Badge className={config.color}>
+                                <StatusIcon className="mr-1 h-3 w-3" />
+                                {config.label}
+                              </Badge>
                             </div>
 
-                            {/* Right: Time & Amount */}
-                            <div className="flex items-center gap-6">
-                              <div className="text-sm">
-                                <p className="text-muted-foreground">Inicio</p>
-                                <p className="font-medium">
-                                  {new Date(reservation.date).toLocaleDateString('es-ES', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                  })}{' '}
-                                  {reservation.startTime}
-                                </p>
+                            <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <User className="h-4 w-4" />
+                                <span>{reservation.driverFullName}</span>
                               </div>
-
-                              <div className="text-sm">
-                                <p className="text-muted-foreground">Duración</p>
-                                <p className="font-medium">{durationHours}h</p>
+                              <div className="flex items-center gap-1">
+                                <Car className="h-4 w-4" />
+                                <span>{reservation.vehiclePlate}</span>
                               </div>
-
-                              <div className="text-sm">
-                                <p className="text-muted-foreground">Monto</p>
-                                <p className="font-medium text-green-600">
-                                  ${reservation.totalPrice.toFixed(2)}
-                                </p>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                <span>Espacio {reservation.spotLabel}</span>
                               </div>
                             </div>
                           </div>
-                        </button>
-                      )
-                    }
-                  )}
 
-                  {filterReservations(activeTab === 'all' ? undefined : activeTab).length === 0 && (
+                          {/* Right: Time & Amount */}
+                          <div className="flex items-center gap-6">
+                            <div className="text-sm">
+                              <p className="text-muted-foreground">Inicio</p>
+                              <p className="font-medium">
+                                {new Date(reservation.date).toLocaleDateString('es-ES', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                })}{' '}
+                                {reservation.startTime}
+                              </p>
+                            </div>
+
+                            <div className="text-sm">
+                              <p className="text-muted-foreground">Duración</p>
+                              <p className="font-medium">{durationHours}h</p>
+                            </div>
+
+                            <div className="text-sm">
+                              <p className="text-muted-foreground">Monto</p>
+                              <p className="font-medium text-green-600">
+                                ${reservation.totalPrice.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+
+                  {filteredReservations().length === 0 && (
                     <div className="py-12 text-center">
                       <AlertCircle className="text-muted-foreground mx-auto mb-3 h-12 w-12" />
                       <p className="text-muted-foreground">No se encontraron reservas</p>
@@ -339,16 +360,16 @@ export function ReservationsManagement() {
                 className={
                   (
                     statusConfig[
-                      selectedReservation.status.toLowerCase() as keyof typeof statusConfig
-                    ] || statusConfig.scheduled
+                      (selectedReservation.status || 'PENDING') as keyof typeof statusConfig
+                    ] || statusConfig.PENDING
                   ).color
                 }
               >
                 {
                   (
                     statusConfig[
-                      selectedReservation.status.toLowerCase() as keyof typeof statusConfig
-                    ] || statusConfig.scheduled
+                      (selectedReservation.status || 'PENDING') as keyof typeof statusConfig
+                    ] || statusConfig.PENDING
                   ).label
                 }
               </Badge>
@@ -456,14 +477,15 @@ export function ReservationsManagement() {
             </div>
 
             {/* Actions */}
-            {selectedReservation.status.toLowerCase() === 'active' && (
+            {(selectedReservation.status === 'CONFIRMED' ||
+              selectedReservation.status === 'PENDING') && (
               <div className="mt-6 flex gap-3 border-t pt-6">
                 <Button
                   variant="destructive"
                   className="flex-1"
                   onClick={async () => {
                     try {
-                      await apiClient.updateReservationStatus(selectedReservation.id, 'cancelled')
+                      await apiClient.updateReservationStatus(selectedReservation.id, 'CANCELED')
                       toast({
                         title: 'Reserva cancelada',
                         description: 'La reserva ha sido cancelada exitosamente',

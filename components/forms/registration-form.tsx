@@ -2,7 +2,7 @@
 
 import type React from 'react'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,13 @@ export function RegistrationForm() {
     companyName: '',
     ruc: '',
   })
+
+  useEffect(() => {
+    document.title = 'Registro - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

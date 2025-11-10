@@ -23,10 +23,18 @@ import { useToast } from '@/hooks/use-toast'
 export function ReviewsManagement() {
   const { toast } = useToast()
   const [reviews, setReviews] = useState<ReviewResource[]>([])
+  const [parking, setParking] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRating, setFilterRating] = useState('all')
   const [activeTab, setActiveTab] = useState('all')
+
+  useEffect(() => {
+    document.title = 'Reseñas - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
 
   const loadReviews = useCallback(async () => {
     try {
@@ -43,11 +51,15 @@ export function ReviewsManagement() {
 
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
       if (parkings.length === 0) {
+        setParking(null)
         setReviews([])
         return
       }
 
-      const parkingReviews = await apiClient.getReviewsByParkingId(parkings[0].id)
+      const selectedParking = parkings[0]
+      setParking(selectedParking)
+
+      const parkingReviews = await apiClient.getReviewsByParkingId(selectedParking.id)
       setReviews(parkingReviews)
     } catch (error) {
       toast({
@@ -135,7 +147,7 @@ export function ReviewsManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reseñas</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Reseñas - {parking?.name}</h1>
         <p className="text-muted-foreground mt-1">Gestiona las opiniones de tus clientes</p>
       </div>
 
@@ -243,14 +255,7 @@ export function ReviewsManagement() {
         </Select>
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">Todas ({reviews.length})</TabsTrigger>
-          <TabsTrigger value="pending">Pendientes (0)</TabsTrigger>
-          <TabsTrigger value="responded">Respondidas ({reviews.length})</TabsTrigger>
-        </TabsList>
-
         <TabsContent value={activeTab} className="mt-6 space-y-4">
           {loading ? (
             <Card>
@@ -307,20 +312,6 @@ export function ReviewsManagement() {
                       <p className="text-sm leading-relaxed">{review.comment}</p>
                       <div className="text-muted-foreground flex items-center gap-4 text-xs">
                         <span>Estacionamiento: {review.parkingName}</span>
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
-                      <div className="flex items-start gap-3">
-                        <MessageSquare className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-                        <div className="flex-1 space-y-2">
-                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            Funcionalidad próximamente
-                          </p>
-                          <p className="text-sm leading-relaxed text-blue-800 dark:text-blue-200">
-                            La capacidad para responder reseñas estará disponible en futuras
-                            actualizaciones.
-                          </p>
-                        </div>
                       </div>
                     </div>
                   </div>

@@ -63,6 +63,13 @@ export function SpaceManagement() {
   const [selectedSpace, setSelectedSpace] = useState<SpaceWithDevice | null>(null)
   const [parking, setParking] = useState<ParkingResource | null>(null)
 
+  useEffect(() => {
+    document.title = 'Espacios IoT - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
+
   const loadSpaces = useCallback(async () => {
     try {
       setLoading(true)

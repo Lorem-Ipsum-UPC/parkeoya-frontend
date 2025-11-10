@@ -33,6 +33,13 @@ export function DashboardOverview() {
   const [parking, setParking] = useState<ParkingResource | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
+  useEffect(() => {
+    document.title = 'Panel General - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
+
   // Update clock every second
   useEffect(() => {
     const timer = setInterval(() => {
@@ -203,7 +210,7 @@ export function DashboardOverview() {
           <CardContent className="space-y-3">
             <Link
               href="/dashboard/spaces"
-              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+              className="hover:bg-primary/10 hover:border-primary/50 flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
                 <Square className="h-5 w-5 text-blue-600" />
@@ -216,7 +223,7 @@ export function DashboardOverview() {
 
             <Link
               href="/dashboard/reservations"
-              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+              className="hover:bg-primary/10 hover:border-primary/50 flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900">
                 <Calendar className="h-5 w-5 text-green-600" />
@@ -229,7 +236,7 @@ export function DashboardOverview() {
 
             <Link
               href="/dashboard/reviews"
-              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+              className="hover:bg-primary/10 hover:border-primary/50 flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900">
                 <Star className="h-5 w-5 text-yellow-600" />
@@ -242,7 +249,7 @@ export function DashboardOverview() {
 
             <Link
               href="/dashboard/configuration"
-              className="hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
+              className="hover:bg-primary/10 hover:border-primary/50 flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900">
                 <Settings className="h-5 w-5 text-purple-600" />

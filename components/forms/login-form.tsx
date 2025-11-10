@@ -2,7 +2,7 @@
 
 import type React from 'react'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,13 @@ export function LoginForm() {
     password: '',
   })
 
+  useEffect(() => {
+    document.title = 'Iniciar Sesión - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -32,14 +39,29 @@ export function LoginForm() {
       })
 
       localStorage.setItem('parkeoya_token', response.token)
-      localStorage.setItem(
-        'parkeoya_user',
-        JSON.stringify({
-          id: response.id,
-          email: response.email,
-          name: 'Usuario',
-        })
-      )
+
+      // Obtener el perfil del parking owner para obtener el nombre completo
+      try {
+        const profile = await apiClient.getParkingOwnerProfile(response.id)
+        localStorage.setItem(
+          'parkeoya_user',
+          JSON.stringify({
+            id: response.id,
+            email: response.email,
+            name: profile.fullName,
+          })
+        )
+      } catch (error) {
+        // Si falla obtener el perfil, usar email como fallback
+        localStorage.setItem(
+          'parkeoya_user',
+          JSON.stringify({
+            id: response.id,
+            email: response.email,
+            name: response.email.split('@')[0],
+          })
+        )
+      }
 
       try {
         const parkings = await apiClient.getParkingsByOwnerId(response.id)

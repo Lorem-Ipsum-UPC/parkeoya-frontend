@@ -52,6 +52,13 @@ export function SettingsPage() {
   const [parking, setParking] = useState<ParkingResource | null>(null)
   const [profile, setProfile] = useState<ParkingOwnerProfile | null>(null)
 
+  useEffect(() => {
+    document.title = 'Configuración - Parkeoya'
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [])
+
   const DAYS = [
     { id: 'monday', label: 'Lunes' },
     { id: 'tuesday', label: 'Martes' },
@@ -290,7 +297,7 @@ export function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Configuración - {parking?.name}</h1>
           <p className="text-muted-foreground mt-1">
             Administra la información de tu estacionamiento y perfil
           </p>
@@ -298,7 +305,11 @@ export function SettingsPage() {
         <div className="flex gap-2">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={handleCancel}>
+              <Button
+                className="bg-transparent hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-800 dark:hover:bg-red-950/20 dark:hover:text-red-400"
+                variant="outline"
+                onClick={handleCancel}
+              >
                 <X className="mr-2 h-4 w-4" />
                 Cancelar
               </Button>

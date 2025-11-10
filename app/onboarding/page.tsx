@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProtectedRoute } from '@/components/forms/protected-route'
 import { OnboardingSteps } from '@/components/steps/onboarding-steps'
@@ -49,6 +49,14 @@ export default function OnboardingPage() {
     closeTime: '20:00',
     is24Hours: false,
   })
+
+  useEffect(() => {
+    const stepTitles = ['Información Básica', 'Ubicación', 'Capacidad', 'Tarifas', 'Horarios']
+    document.title = `${stepTitles[currentStep - 1]} - Onboarding - Parkeoya`
+    return () => {
+      document.title = 'Parkeoya'
+    }
+  }, [currentStep])
 
   const handleNext = async () => {
     if (currentStep < STEPS.length) {
