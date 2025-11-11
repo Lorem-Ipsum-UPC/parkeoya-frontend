@@ -18,6 +18,7 @@ export function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,22 +40,39 @@ export function RegistrationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
+
+    // Validación de campos vacíos
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      setErrorMessage('Por favor completa todos los campos obligatorios')
+      return
+    }
+
+    // Validación de email
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrorMessage('Por favor ingresa un correo electrónico válido')
+      return
+    }
+
+    // Validación de contraseña
+    if (formData.password.length < 8) {
+      setErrorMessage('La contraseña debe tener al menos 8 caracteres')
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Las contraseñas no coinciden',
-        variant: 'destructive',
-      })
+      setErrorMessage('Las contraseñas no coinciden')
       return
     }
 
     if (!acceptedTerms) {
-      toast({
-        title: 'Error',
-        description: 'Debes aceptar los términos y condiciones',
-        variant: 'destructive',
-      })
+      setErrorMessage('Debes aceptar los términos y condiciones')
       return
     }
 
@@ -88,11 +106,47 @@ export function RegistrationForm() {
 
       router.push('/login')
     } catch (error) {
-      toast({
-        title: 'Error al crear cuenta',
-        description: error instanceof Error ? error.message : 'Error desconocido',
-        variant: 'destructive',
-      })
+      let finalErrorMessage = 'No se pudo crear la cuenta. Verifica los datos ingresados'
+
+      if (error instanceof Error) {
+        // Usar el mensaje completo del backend
+        finalErrorMessage = error.message
+
+        // Intentar limpiar el mensaje si viene en formato JSON
+        try {
+          const parsed = JSON.parse(error.message)
+          if (parsed.message) finalErrorMessage = parsed.message
+          else if (parsed.error) finalErrorMessage = parsed.error
+          else if (parsed.detail) finalErrorMessage = parsed.detail
+        } catch {
+          // Si no es JSON, usar el mensaje tal cual
+        }
+
+        // Intentar detectar el tipo de error para personalizar el mensaje
+        const msg = error.message.toLowerCase()
+
+        if (
+          msg.includes('email') &&
+          (msg.includes('exist') || msg.includes('already') || msg.includes('duplicate'))
+        ) {
+          finalErrorMessage = 'Este correo electrónico ya está registrado. Intenta iniciar sesión'
+        } else if (msg.includes('phone')) {
+          finalErrorMessage = `Error en teléfono: ${finalErrorMessage}`
+        } else if (msg.includes('password')) {
+          finalErrorMessage = `Error en contraseña: ${finalErrorMessage}`
+        } else if (msg.includes('ruc')) {
+          finalErrorMessage = `Error en RUC: ${finalErrorMessage}`
+        } else if (msg.includes('network') || msg.includes('fetch')) {
+          finalErrorMessage = 'No se pudo conectar con el servidor. Verifica tu internet'
+        } else if (msg.includes('400')) {
+          finalErrorMessage = `Datos inválidos: ${finalErrorMessage}`
+        } else if (msg.includes('500')) {
+          finalErrorMessage = `Error del servidor: ${finalErrorMessage}`
+        }
+      }
+
+      // Mostrar error inline en el formulario
+      setErrorMessage(finalErrorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -249,6 +303,30 @@ export function RegistrationForm() {
           </a>
         </label>
       </div>
+
+      {/* Mensaje de error inline */}
+      {errorMessage && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-600 dark:text-red-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
         {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}

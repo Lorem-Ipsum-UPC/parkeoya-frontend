@@ -14,14 +14,37 @@ interface PricingStepProps {
     dailyRate: string
     monthlyRate: string
   }
+  setErrorMessage: (message: string) => void
   onUpdate: (data: Partial<PricingStepProps['data']>) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function PricingStep({ data, onUpdate, onNext, onBack }: PricingStepProps) {
+export function PricingStep({ data, setErrorMessage, onUpdate, onNext, onBack }: PricingStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
+
+    // Validaciones
+    const hourly = parseFloat(data.hourlyRate || '0')
+    const daily = parseFloat(data.dailyRate || '0')
+    const monthly = parseFloat(data.monthlyRate || '0')
+
+    if (hourly <= 0) {
+      setErrorMessage('La tarifa por hora debe ser mayor a 0')
+      return
+    }
+
+    if (daily <= 0) {
+      setErrorMessage('La tarifa diaria debe ser mayor a 0')
+      return
+    }
+
+    if (monthly <= 0) {
+      setErrorMessage('La tarifa mensual debe ser mayor a 0')
+      return
+    }
+
     onNext()
   }
 

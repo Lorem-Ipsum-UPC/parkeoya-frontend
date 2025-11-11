@@ -17,14 +17,39 @@ interface LocationStepProps {
     latitude: string
     longitude: string
   }
+  setErrorMessage: (message: string) => void
   onUpdate: (data: Partial<LocationStepProps['data']>) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function LocationStep({ data, onUpdate, onNext, onBack }: LocationStepProps) {
+export function LocationStep({
+  data,
+  setErrorMessage,
+  onUpdate,
+  onNext,
+  onBack,
+}: LocationStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
+
+    // Validaciones
+    if (!data.address || data.address.trim().length < 5) {
+      setErrorMessage('La dirección debe tener al menos 5 caracteres')
+      return
+    }
+
+    if (!data.city || data.city.trim().length < 2) {
+      setErrorMessage('Por favor ingresa una ciudad válida')
+      return
+    }
+
+    if (!data.province || data.province.trim().length < 2) {
+      setErrorMessage('Por favor ingresa una provincia válida')
+      return
+    }
+
     onNext()
   }
 

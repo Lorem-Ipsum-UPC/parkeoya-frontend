@@ -13,13 +13,22 @@ interface BasicInfoStepProps {
     name: string
     description: string
   }
+  setErrorMessage: (message: string) => void
   onUpdate: (data: Partial<BasicInfoStepProps['data']>) => void
   onNext: () => void
 }
 
-export function BasicInfoStep({ data, onUpdate, onNext }: BasicInfoStepProps) {
+export function BasicInfoStep({ data, setErrorMessage, onUpdate, onNext }: BasicInfoStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
+
+    // Validaciones
+    if (!data.name || data.name.trim().length < 3) {
+      setErrorMessage('El nombre del estacionamiento debe tener al menos 3 caracteres')
+      return
+    }
+
     onNext()
   }
 

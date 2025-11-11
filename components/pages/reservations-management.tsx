@@ -91,7 +91,7 @@ export function ReservationsManagement() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'No se pudieron cargar las reservas',
+        description: error instanceof Error ? error.message : 'No se pudieron cargar las reservas',
         variant: 'destructive',
       })
     } finally {
@@ -495,7 +495,8 @@ export function ReservationsManagement() {
                     } catch (error) {
                       toast({
                         title: 'Error',
-                        description: 'No se pudo cancelar la reserva',
+                        description:
+                          error instanceof Error ? error.message : 'No se pudo cancelar la reserva',
                         variant: 'destructive',
                       })
                     }

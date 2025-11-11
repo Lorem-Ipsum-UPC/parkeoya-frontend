@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Car, Zap, Accessibility } from '@/lib/icons'
-import { useToast } from '@/hooks/use-toast'
 
 interface CapacityStepProps {
   data: {
@@ -16,30 +15,37 @@ interface CapacityStepProps {
     disabledSpaces: string
     electricSpaces: string
   }
+  setErrorMessage: (message: string) => void
   onUpdate: (data: Partial<CapacityStepProps['data']>) => void
   onNext: () => void
   onBack: () => void
 }
 
-export function CapacityStep({ data, onUpdate, onNext, onBack }: CapacityStepProps) {
-  const { toast } = useToast()
-
+export function CapacityStep({
+  data,
+  setErrorMessage,
+  onUpdate,
+  onNext,
+  onBack,
+}: CapacityStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
 
     const total = Number.parseInt(data.totalSpaces || '0', 10) || 0
     const regular = Number.parseInt(data.regularSpaces || '0', 10) || 0
     const disabled = Number.parseInt(data.disabledSpaces || '0', 10) || 0
     const electric = Number.parseInt(data.electricSpaces || '0', 10) || 0
 
+    if (total <= 0) {
+      setErrorMessage('El total de espacios debe ser mayor a 0')
+      return
+    }
+
     const sum = regular + disabled + electric
 
     if (sum !== total) {
-      toast({
-        title: 'Error de validación',
-        description: `La suma de los espacios (${sum}) debe ser igual al total (${total}).`,
-        variant: 'destructive',
-      })
+      setErrorMessage(`La suma de los espacios (${sum}) debe ser igual al total (${total})`)
       return
     }
 

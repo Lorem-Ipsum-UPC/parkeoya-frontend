@@ -94,7 +94,10 @@ export function DashboardOverview() {
       } catch (error) {
         toast({
           title: 'Error',
-          description: 'No se pudieron cargar los datos del dashboard',
+          description:
+            error instanceof Error
+              ? error.message
+              : 'No se pudieron cargar los datos del dashboard',
           variant: 'destructive',
         })
       } finally {

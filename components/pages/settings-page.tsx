@@ -266,8 +266,9 @@ export function SettingsPage() {
       })
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar la configuración',
+        title: 'Error al actualizar',
+        description:
+          error instanceof Error ? error.message : 'No se pudo actualizar la configuración',
         variant: 'destructive',
       })
     }

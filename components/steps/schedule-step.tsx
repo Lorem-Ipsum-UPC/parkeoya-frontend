@@ -15,6 +15,7 @@ interface ScheduleStepProps {
     closeTime: string
     is24Hours: boolean
   }
+  setErrorMessage: (message: string) => void
   onUpdate: (data: Partial<ScheduleStepProps['data']>) => void
   onNext: () => void
   onBack: () => void
@@ -33,6 +34,7 @@ const DAYS = [
 
 export function ScheduleStep({
   data,
+  setErrorMessage,
   onUpdate,
   onNext,
   onBack,
@@ -40,6 +42,26 @@ export function ScheduleStep({
 }: ScheduleStepProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage('') // Limpiar errores previos
+
+    // Validaciones
+    if (data.operatingDays.length === 0) {
+      setErrorMessage('Debes seleccionar al menos un día de operación')
+      return
+    }
+
+    if (!data.is24Hours) {
+      if (!data.openTime || !data.closeTime) {
+        setErrorMessage('Debes establecer horarios de apertura y cierre')
+        return
+      }
+
+      if (data.openTime >= data.closeTime) {
+        setErrorMessage('La hora de cierre debe ser posterior a la hora de apertura')
+        return
+      }
+    }
+
     onNext()
   }
 

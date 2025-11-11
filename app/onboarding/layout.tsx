@@ -11,6 +11,8 @@ import { getCurrentUser } from '@/lib/auth'
 
 interface OnboardingContextType {
   data: any
+  errorMessage: string
+  setErrorMessage: (message: string) => void
   onUpdate: (data: any) => void
   onNext: () => void
   onPrevious: () => void
@@ -54,6 +56,7 @@ const STEPS = [
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const [errorMessage, setErrorMessage] = useState<string>('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -72,11 +75,24 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     monthlyRate: '200',
     totalRows: 5,
     totalColumns: 10,
-    operatingDays: [],
+    operatingDays: [] as string[],
     is24Hours: false,
     openTime: '08:00',
     closeTime: '20:00',
   })
+
+  // Cargar datos guardados del localStorage al montar el componente
+  useEffect(() => {
+    const savedData = localStorage.getItem('parkeoya_onboarding_draft')
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData)
+        setFormData(parsedData)
+      } catch (error) {
+        // Si hay error al parsear, ignorar y usar valores por defecto
+      }
+    }
+  }, [])
 
   const getCurrentStep = () => {
     const step = STEPS.find(s => s.path === pathname)
@@ -86,10 +102,14 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
   const currentStep = getCurrentStep()
 
   const updateFormData = (data: Partial<typeof formData>) => {
-    setFormData(prev => ({ ...prev, ...data }))
+    const updatedData = { ...formData, ...data }
+    setFormData(updatedData)
+    // Guardar en localStorage cada vez que se actualiza
+    localStorage.setItem('parkeoya_onboarding_draft', JSON.stringify(updatedData))
   }
 
   const handleNext = async () => {
+    setErrorMessage('') // Limpiar errores previos
     const nextStep = currentStep + 1
     if (nextStep <= STEPS.length) {
       const nextPath = STEPS[nextStep - 1].path
@@ -127,11 +147,53 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
           closingTime: formData.is24Hours ? undefined : formData.closeTime,
         }
 
-        await apiClient.createParking(parkingData)
+        // Crear el parking
+        const createdParking = await apiClient.createParking(parkingData)
+
+        // Crear los spots automáticamente
+        const totalSpots = parseInt(formData.totalSpaces, 10)
+        const regularSpots = parseInt(formData.regularSpaces, 10)
+        const disabledSpots = parseInt(formData.disabledSpaces, 10)
+        const electricSpots = parseInt(formData.electricSpaces, 10)
+
+        // Calcular el grid necesario (ajustar automáticamente si hace falta)
+        let rows = formData.totalRows
+        const columns = formData.totalColumns
+        const gridCapacity = rows * columns
+
+        // Si el grid configurado es menor que el total de spots, expandir automáticamente
+        if (gridCapacity < totalSpots) {
+          // Mantener las columnas y aumentar las filas necesarias
+          rows = Math.ceil(totalSpots / columns)
+        }
+
+        // Crear todos los spots con numeración global
+        for (let spotIndex = 0; spotIndex < totalSpots; spotIndex++) {
+          const row = Math.floor(spotIndex / columns)
+          const col = spotIndex % columns
+
+          // Numeración global consecutiva
+          const spotNumber = spotIndex + 1
+          const label = spotNumber.toString()
+
+          // Crear el spot
+          await apiClient.addParkingSpot(createdParking.id, {
+            row: row,
+            column: col,
+            label: label,
+          })
+        }
+
+        // Limpiar el borrador del localStorage al completar exitosamente
+        localStorage.removeItem('parkeoya_onboarding_draft')
 
         router.push('/dashboard')
       } catch (error) {
-        alert('Error al guardar la configuración. Por favor intenta de nuevo.')
+        const finalErrorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error al guardar la configuración. Por favor intenta de nuevo.'
+        setErrorMessage(finalErrorMessage)
       }
     }
   }
@@ -176,6 +238,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
             <OnboardingContext.Provider
               value={{
                 data: formData,
+                errorMessage,
+                setErrorMessage,
                 onUpdate: updateFormData,
                 onNext: handleNext,
                 onPrevious: handlePrevious,
@@ -183,6 +247,31 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
                 isLast: currentStep === STEPS.length,
               }}
             >
+              {/* Mensaje de error global para todos los steps */}
+              {errorMessage && (
+                <div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/30">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex-shrink-0">
+                      <svg
+                        className="h-5 w-5 text-red-600 dark:text-red-500"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                        {errorMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {children}
             </OnboardingContext.Provider>
           </div>

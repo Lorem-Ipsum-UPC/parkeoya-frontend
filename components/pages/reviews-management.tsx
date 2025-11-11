@@ -64,7 +64,7 @@ export function ReviewsManagement() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'No se pudieron cargar las reseñas',
+        description: error instanceof Error ? error.message : 'No se pudieron cargar las reseñas',
         variant: 'destructive',
       })
     } finally {

@@ -113,7 +113,7 @@ export function SpaceManagement() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'No se pudieron cargar los espacios',
+        description: error instanceof Error ? error.message : 'No se pudieron cargar los espacios',
         variant: 'destructive',
       })
     } finally {

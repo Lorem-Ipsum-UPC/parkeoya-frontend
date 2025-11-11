@@ -58,11 +58,48 @@ class ApiClient {
       const response = await fetch(`${this.baseUrl}${endpoint}`, config)
 
       if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        let errorMessage = `Error ${response.status}`
+        let errorDetails = ''
+
         try {
-          const error: ApiError = await response.json()
-          errorMessage = error.message || errorMessage
-        } catch {}
+          const errorData = await response.json()
+
+          // Intentar extraer el mensaje de error del backend
+          if (errorData.message) {
+            errorMessage = errorData.message
+          } else if (errorData.error) {
+            errorMessage = errorData.error
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail
+          } else if (errorData.title) {
+            errorMessage = errorData.title
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData
+          }
+
+          // Agregar detalles adicionales si existen
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            errorDetails = errorData.errors.map((e: any) => e.message || e).join(', ')
+          } else if (errorData.details && typeof errorData.details === 'object') {
+            errorDetails = JSON.stringify(errorData.details)
+          } else if (errorData.details && typeof errorData.details === 'string') {
+            errorDetails = errorData.details
+          }
+
+          // Si hay detalles, agregarlos al mensaje
+          if (errorDetails) {
+            errorMessage += `: ${errorDetails}`
+          }
+
+          // Si aún no tenemos un mensaje específico, intentar con el objeto completo
+          if (errorMessage === `Error ${response.status}` && Object.keys(errorData).length > 0) {
+            errorMessage = JSON.stringify(errorData)
+          }
+        } catch (parseError) {
+          // Si no se puede parsear, usar el status text
+          errorMessage = `${response.statusText || errorMessage}`
+        }
+
         throw new Error(errorMessage)
       }
 
@@ -71,7 +108,7 @@ class ApiClient {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error('Unknown error occurred')
+      throw new Error('Error desconocido. Por favor, intenta de nuevo.')
     }
   }
 
