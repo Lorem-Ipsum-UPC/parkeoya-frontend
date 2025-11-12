@@ -77,10 +77,11 @@ export function DashboardOverview() {
 
         const spots = await apiClient.getParkingSpotsByParkingId(userParking.id)
         const occupiedSpots = spots.filter(s => s.status.toLowerCase() === 'occupied').length
-        const availableSpots = userParking.totalSpots - occupiedSpots
+        const totalSpots = spots.length // Usar el número real de spots creados
+        const availableSpots = totalSpots - occupiedSpots
 
         setStats({
-          totalSpaces: userParking.totalSpots,
+          totalSpaces: totalSpots, // Cambiar de userParking.totalSpots a spots.length
           occupiedSpaces: occupiedSpots,
           availableSpaces: availableSpots,
           todayReservations: todayReservations.length,

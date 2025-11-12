@@ -62,6 +62,8 @@ export function SpaceManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSpace, setSelectedSpace] = useState<SpaceWithDevice | null>(null)
   const [parking, setParking] = useState<ParkingResource | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const SPACES_PER_PAGE = 50 // Mostrar 50 espacios por página
 
   useEffect(() => {
     document.title = 'Espacios IoT - Parkeoya'
@@ -100,14 +102,36 @@ export function SpaceManagement() {
         allDevices = [...allDevices, ...devices]
       }
 
-      const spacesWithDevices: SpaceWithDevice[] = parkingSpots.map(spot => {
-        const device = allDevices.find(d => d.parkingSpotId === spot.id)
-        return {
-          ...spot,
-          device,
-          displayStatus: getSpaceStatus(device),
-        }
-      })
+      const spacesWithDevices: SpaceWithDevice[] = parkingSpots
+        .map(spot => {
+          const device = allDevices.find(d => d.parkingSpotId === spot.id)
+          return {
+            ...spot,
+            device,
+            displayStatus: getSpaceStatus(device),
+          }
+        })
+        .sort((a, b) => {
+          // Ordenar primero por fila (rowIndex), luego por columna (columnIndex)
+          if (a.rowIndex !== b.rowIndex) {
+            return a.rowIndex - b.rowIndex
+          }
+          return a.columnIndex - b.columnIndex
+        })
+        .map((spot, index) => {
+          // Calcular posición visual basada en el índice (10 columnas por fila)
+          const COLUMNS_PER_ROW = 10
+          const visualRow = Math.floor(index / COLUMNS_PER_ROW)
+          const visualColumn = index % COLUMNS_PER_ROW
+
+          return {
+            ...spot,
+            // Sobrescribir con valores visuales correctos
+            label: (index + 1).toString(),
+            rowIndex: visualRow,
+            columnIndex: visualColumn,
+          }
+        })
 
       setSpaces(spacesWithDevices)
     } catch (error) {
@@ -132,9 +156,21 @@ export function SpaceManagement() {
     offline: spaces.filter(s => s.displayStatus === 'offline').length,
   }
 
+  // Filtrar espacios por búsqueda
   const filteredSpaces = spaces.filter(space =>
     space.label.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredSpaces.length / SPACES_PER_PAGE)
+  const startIndex = (currentPage - 1) * SPACES_PER_PAGE
+  const endIndex = startIndex + SPACES_PER_PAGE
+  const paginatedSpaces = filteredSpaces.slice(startIndex, endIndex)
+
+  // Resetear a la primera página cuando cambia la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
 
   return (
     <div className="space-y-6">
@@ -220,8 +256,18 @@ export function SpaceManagement() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
           <CardTitle>Matriz de Espacios</CardTitle>
+          <div className="text-muted-foreground text-sm">
+            {filteredSpaces.length > 0 ? (
+              <>
+                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredSpaces.length)} de{' '}
+                {filteredSpaces.length}
+              </>
+            ) : (
+              'Sin resultados'
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -229,33 +275,98 @@ export function SpaceManagement() {
               <div className="text-muted-foreground mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
               <p className="text-muted-foreground">Cargando espacios...</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-5 gap-2 md:grid-cols-10">
-              {filteredSpaces.map(space => {
-                const config = statusConfig[space.displayStatus as keyof typeof statusConfig]
-                const Icon = config.icon
-
-                return (
-                  <button
-                    key={space.id}
-                    onClick={() => setSelectedSpace(space)}
-                    className={`aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
-                      selectedSpace?.id === space.id
-                        ? 'border-blue-600 ring-2 ring-blue-600/20'
-                        : 'border-transparent'
-                    } ${config.bgColor}`}
-                    title={`${space.label} - ${config.label}`}
-                  >
-                    <div className="flex h-full flex-col items-center justify-center p-1">
-                      <Icon className={`mb-1 h-4 w-4 ${config.textColor}`} />
-                      <span className={`text-xs font-medium ${config.textColor}`}>
-                        {space.label}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
+          ) : filteredSpaces.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-muted-foreground">
+                No se encontraron espacios{searchQuery ? ' que coincidan con tu búsqueda' : ''}
+              </p>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-5 gap-2 md:grid-cols-10">
+                {paginatedSpaces.map(space => {
+                  const config = statusConfig[space.displayStatus as keyof typeof statusConfig]
+                  const Icon = config.icon
+
+                  return (
+                    <button
+                      key={space.id}
+                      onClick={() => setSelectedSpace(space)}
+                      className={`aspect-square rounded-lg border-2 transition-all hover:scale-105 ${
+                        selectedSpace?.id === space.id
+                          ? 'border-blue-600 ring-2 ring-blue-600/20'
+                          : 'border-transparent'
+                      } ${config.bgColor}`}
+                      title={`${space.label} - ${config.label}`}
+                    >
+                      <div className="flex h-full flex-col items-center justify-center p-1">
+                        <Icon className={`mb-1 h-4 w-4 ${config.textColor}`} />
+                        <span className={`text-xs font-medium ${config.textColor}`}>
+                          {space.label}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Controles de paginación */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      // Mostrar solo algunas páginas alrededor de la actual
+                      const showPage =
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 2 && page <= currentPage + 2)
+
+                      if (!showPage) {
+                        // Mostrar puntos suspensivos
+                        if (page === currentPage - 3 || page === currentPage + 3) {
+                          return (
+                            <span key={page} className="text-muted-foreground px-2">
+                              ...
+                            </span>
+                          )
+                        }
+                        return null
+                      }
+
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="min-w-[2.5rem]"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -292,7 +403,7 @@ export function SpaceManagement() {
                 <div>
                   <p className="text-muted-foreground mb-1 text-sm">Posición</p>
                   <p className="text-sm">
-                    Fila {selectedSpace.rowIndex}, Columna {selectedSpace.columnIndex}
+                    Fila {selectedSpace.rowIndex + 1}, Columna {selectedSpace.columnIndex + 1}
                   </p>
                 </div>
                 {selectedSpace.device && (
