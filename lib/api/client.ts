@@ -228,7 +228,25 @@ class ApiClient {
   }
 
   async getDevicesByEdgeServerId(edgeServerId: string): Promise<DeviceResource[]> {
+    console.log(`🌐 URL completa: ${this.baseUrl}/api/v1/devices/edge-server/${edgeServerId}`)
     return this.request<DeviceResource[]>(`/api/v1/devices/edge-server/${edgeServerId}`)
+  }
+
+  async getDevicesByParkingId(parkingId: number): Promise<DeviceResource[]> {
+    console.log(`🔍 Obteniendo dispositivos para parking ${parkingId}`)
+    const edgeServers = await this.getEdgeServersByParkingId(parkingId)
+    console.log(`🖥️ Edge Servers encontrados:`, edgeServers)
+    
+    let allDevices: DeviceResource[] = []
+    for (const edgeServer of edgeServers) {
+      console.log(`📡 Consultando dispositivos del edge server: ${edgeServer.serverId}`)
+      const devices = await this.getDevicesByEdgeServerId(edgeServer.serverId)
+      console.log(`   ↳ Dispositivos obtenidos:`, devices)
+      allDevices = [...allDevices, ...devices]
+    }
+    
+    console.log(`✅ Total dispositivos para parking ${parkingId}:`, allDevices.length)
+    return allDevices
   }
 
   async createReservation(data: CreateReservationResource): Promise<ReservationResource> {

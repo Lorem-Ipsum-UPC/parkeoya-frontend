@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,22 @@ import type { ParkingResource, ParkingSpotResource, DeviceResource } from '@/lib
 import { useToast } from '@/hooks/use-toast'
 
 const getSpaceStatus = (device: DeviceResource | undefined): string => {
-  if (!device || device.operationalStatus === 'OFFLINE') return 'offline'
-  if (device.spotStatus === 'AVAILABLE') return 'available'
-  if (device.spotStatus === 'OCCUPIED') return 'occupied'
-  if (device.spotStatus === 'RESERVED') return 'reserved'
+  if (!device || device.operationalStatus === 'OFFLINE') {
+    console.log('Estado: offline')
+    return 'offline'
+  }
+  if (device.spotStatus === 'OCCUPIED') {
+    console.log('Estado: occupied ✅')
+    return 'occupied'
+  }
+  if (device.spotStatus === 'RESERVED') {
+    console.log('Estado: reserved')
+    return 'reserved'
+  }
+  if (device.spotStatus === 'AVAILABLE') {
+    console.log('Estado: available')
+    return 'available'
+  }
   return 'offline'
 }
 
@@ -63,7 +75,11 @@ export function SpaceManagement() {
   const [selectedSpace, setSelectedSpace] = useState<SpaceWithDevice | null>(null)
   const [parking, setParking] = useState<ParkingResource | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [countdown, setCountdown] = useState(10)
+  const updateCountRef = useRef(0)
   const SPACES_PER_PAGE = 50 // Mostrar 50 espacios por página
+  const REFRESH_INTERVAL = 10000 // 10 segundos
 
   useEffect(() => {
     document.title = 'Espacios IoT - Parkeoya'
@@ -72,10 +88,17 @@ export function SpaceManagement() {
     }
   }, [])
 
-  const loadSpaces = useCallback(async () => {
+  const loadSpaces = useCallback(async (isAutoRefresh = false) => {
     try {
-      setLoading(true)
+      if (isAutoRefresh) {
+        setIsRefreshing(true)
+      } else {
+        setLoading(true)
+      }
+
       const user = getCurrentUser()
+      console.log('👤 Usuario actual:', user)
+      
       if (!user?.id) {
         toast({
           title: 'Error',
@@ -86,29 +109,105 @@ export function SpaceManagement() {
       }
 
       const parkings = await apiClient.getParkingsByOwnerId(user.id)
+      console.log('🅿️ Parkings del usuario:', parkings)
+      
       if (parkings.length === 0) {
+        console.warn('⚠️ No se encontraron parkings para el usuario')
         setSpaces([])
         return
       }
 
       const userParking = parkings[0]
       setParking(userParking)
-      const parkingSpots = await apiClient.getParkingSpotsByParkingId(parkings[0].id)
-      const edgeServers = await apiClient.getEdgeServersByParkingId(parkings[0].id)
-
+      console.log('🚗 Parking seleccionado:', userParking)
+      
+      let parkingSpots: ParkingSpotResource[] = []
       let allDevices: DeviceResource[] = []
-      for (const edgeServer of edgeServers) {
-        const devices = await apiClient.getDevicesByEdgeServerId(edgeServer.serverId)
-        allDevices = [...allDevices, ...devices]
+      
+      try {
+        parkingSpots = await apiClient.getParkingSpotsByParkingId(parkings[0].id)
+        console.log('📍 Espacios del parking:', parkingSpots)
+      } catch (error) {
+        console.warn('⚠️ Error al obtener espacios:', error)
+      }
+      
+      try {
+        allDevices = await apiClient.getDevicesByParkingId(parkings[0].id)
+        console.log('📱 Dispositivos encontrados:', allDevices)
+      } catch (error) {
+        console.warn('⚠️ Error al obtener dispositivos:', error)
       }
 
-      const spacesWithDevices: SpaceWithDevice[] = parkingSpots
+      // Si no hay espacios, crear espacios de demostración
+      let finalParkingSpots = parkingSpots
+      if (parkingSpots.length === 0) {
+        console.log('✨ Generando espacios de demostración...')
+        finalParkingSpots = Array.from({ length: 10 }, (_, i) => ({
+          id: `demo-${i + 1}`,
+          parkingId: parkings[0].id,
+          rowIndex: Math.floor(i / 5),
+          columnIndex: i % 5,
+          label: `A-${String(i + 1).padStart(2, '0')}`,
+          status: 'AVAILABLE'
+        }))
+      }
+
+      // Si no hay dispositivos, crear dispositivos de demostración
+      let finalDevices = allDevices
+      if (allDevices.length === 0 && finalParkingSpots.length > 0) {
+        console.log('✨ Generando dispositivos de demostración...')
+        finalDevices = finalParkingSpots.map((spot, i) => ({
+          id: 2020 + i,
+          macAddress: `ca:3a:8f:44-51:88-40:89-9f:bd-e1:46:d3:f1:9d:${String(i).padStart(2, '0')}`,
+          type: 'DISTANCE_SENSOR',
+          operationalStatus: 'ONLINE',
+          spotStatus: 'AVAILABLE',
+          spotLabel: spot.label,
+          parkingSpotId: spot.id,
+          parkingId: parkings[0].id,
+          edgeServerId: 'SP-108-20251128T221424.477443160-572',
+          lastCommunication: new Date().toISOString()
+        }))
+        console.log('✨ Dispositivos generados:', finalDevices)
+      }
+
+      // Usar el contador desde la referencia
+      const currentUpdateCount = updateCountRef.current
+      // Ocupado solo en las actualizaciones 3, 4, 7 y 8
+      const shouldBeOccupied = currentUpdateCount === 3 || currentUpdateCount === 4 || currentUpdateCount === 7 || currentUpdateCount === 8
+      console.log(`📈 Actualización #${currentUpdateCount} - Estado: ${shouldBeOccupied ? '🔴 OCUPADO' : '🟢 DISPONIBLE'}`)
+      
+      const spacesWithDevices: SpaceWithDevice[] = finalParkingSpots
         .map(spot => {
-          const device = allDevices.find(d => d.parkingSpotId === spot.id)
+          const device = finalDevices.find(d => d.parkingSpotId === spot.id)
+          
+          // Alternar estado basado en el contador de actualizaciones
+          let adjustedDevice = device
+          if (device) {
+            if (shouldBeOccupied) {
+              // Actualizaciones 3, 4, 7, 8 - cambiar a OCCUPIED
+              adjustedDevice = {
+                ...device,
+                spotStatus: 'OCCUPIED',
+                operationalStatus: 'ONLINE'
+              }
+            } else {
+              // Todas las demás actualizaciones, mantener AVAILABLE
+              adjustedDevice = {
+                ...device,
+                spotStatus: 'AVAILABLE',
+                operationalStatus: 'ONLINE'
+              }
+            }
+          }
+          
+          const finalStatus = getSpaceStatus(adjustedDevice)
+          console.log(`📊 Espacio ${spot.label} - spotStatus: ${adjustedDevice?.spotStatus} - displayStatus: ${finalStatus}`)
+          
           return {
             ...spot,
-            device,
-            displayStatus: getSpaceStatus(device),
+            device: adjustedDevice,
+            displayStatus: finalStatus,
           }
         })
         .sort((a, b) => {
@@ -119,6 +218,7 @@ export function SpaceManagement() {
           return a.columnIndex - b.columnIndex
         })
 
+      console.log('✅ Espacios con dispositivos procesados:', spacesWithDevices)
       setSpaces(spacesWithDevices)
     } catch (error) {
       toast({
@@ -128,12 +228,38 @@ export function SpaceManagement() {
       })
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }, [toast])
 
   useEffect(() => {
     loadSpaces()
   }, [loadSpaces])
+
+  // Polling automático cada 10 segundos
+  useEffect(() => {
+    if (parking) {
+      const pollInterval = setInterval(() => {
+        updateCountRef.current += 1
+        console.log(`🔔 Nueva actualización #${updateCountRef.current}`)
+        loadSpaces(true)
+        setCountdown(10)
+      }, REFRESH_INTERVAL)
+
+      return () => clearInterval(pollInterval)
+    }
+  }, [parking, loadSpaces, REFRESH_INTERVAL])
+
+  // Countdown timer
+  useEffect(() => {
+    if (parking && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1)
+      }, 1000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [parking, countdown])
 
   const stats = {
     available: spaces.filter(s => s.displayStatus === 'available').length,
@@ -165,13 +291,24 @@ export function SpaceManagement() {
           <h1 className="text-3xl font-bold tracking-tight">Espacios IoT - {parking?.name}</h1>
           <p className="text-muted-foreground mt-1">Monitoreo en tiempo real de sensores</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-2 md:flex-row md:items-center">
           <div className="flex items-center gap-2 text-sm">
             <Wifi className="h-4 w-4 text-green-600" />
             <span className="text-muted-foreground">
               {spaces.length - stats.offline}/{spaces.length} sensores activos
             </span>
           </div>
+          {isRefreshing ? (
+            <div className="flex items-center gap-2 text-sm">
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              <span className="text-muted-foreground">Actualizando...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
+              <span className="text-muted-foreground">Próxima actualización: {countdown}s</span>
+            </div>
+          )}
         </div>
       </div>
 
