@@ -29,10 +29,10 @@ import type {
 } from './types'
 
 // 🔧 MODO DESARROLLO: Backend local activado
-const API_BASE_URL = 'http://localhost:8080'
+//const API_BASE_URL = 'http://localhost:8080'
 
 // 🌐 PRODUCCIÓN: Comentado temporalmente para pruebas locales
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://parkeoya-backend-latest-1.onrender.com'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://parkeoya-backend-latest-1.onrender.com'
 
 class ApiClient {
   private baseUrl: string
