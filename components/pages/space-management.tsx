@@ -118,20 +118,6 @@ export function SpaceManagement() {
           }
           return a.columnIndex - b.columnIndex
         })
-        .map((spot, index) => {
-          // Calcular posición visual basada en el índice (10 columnas por fila)
-          const COLUMNS_PER_ROW = 10
-          const visualRow = Math.floor(index / COLUMNS_PER_ROW)
-          const visualColumn = index % COLUMNS_PER_ROW
-
-          return {
-            ...spot,
-            // Sobrescribir con valores visuales correctos
-            label: (index + 1).toString(),
-            rowIndex: visualRow,
-            columnIndex: visualColumn,
-          }
-        })
 
       setSpaces(spacesWithDevices)
     } catch (error) {

@@ -66,14 +66,14 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     zipCode: '',
     latitude: '',
     longitude: '',
-    totalSpaces: '50',
-    regularSpaces: '40',
-    disabledSpaces: '5',
-    electricSpaces: '5',
+    totalSpaces: '1',
+    regularSpaces: '1',
+    disabledSpaces: '0',
+    electricSpaces: '0',
     hourlyRate: '2.5',
     dailyRate: '15',
     monthlyRate: '200',
-    totalRows: 5,
+    totalRows: 1,
     totalColumns: 10,
     operatingDays: [] as string[],
     is24Hours: false,
@@ -156,19 +156,18 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         const disabledSpots = parseInt(formData.disabledSpaces, 10)
         const electricSpots = parseInt(formData.electricSpaces, 10)
 
-        // Calcular el grid necesario (ajustar automáticamente si hace falta)
-        let rows = formData.totalRows
-        const columns = formData.totalColumns
-        const gridCapacity = rows * columns
+        // Calcular el grid necesario automáticamente (10 columnas por defecto)
+        const columns = 10
+        const rows = Math.ceil(totalSpots / columns)
 
-        // Si el grid configurado es menor que el total de spots, expandir automáticamente
-        if (gridCapacity < totalSpots) {
-          // Mantener las columnas y aumentar las filas necesarias
-          rows = Math.ceil(totalSpots / columns)
-        }
+        // Validación: Asegurarse de que totalSpots sea la suma correcta
+        const calculatedTotal = regularSpots + disabledSpots + electricSpots
+        const spotsToCreate = Math.min(totalSpots, calculatedTotal)
 
-        // Crear todos los spots con numeración global
-        for (let spotIndex = 0; spotIndex < totalSpots; spotIndex++) {
+        console.log(`Creando ${spotsToCreate} spots: ${regularSpots} regulares, ${disabledSpots} discapacitados, ${electricSpots} eléctricos`)
+
+        // Crear solo los spots especificados por el usuario
+        for (let spotIndex = 0; spotIndex < spotsToCreate; spotIndex++) {
           const row = Math.floor(spotIndex / columns)
           const col = spotIndex % columns
 

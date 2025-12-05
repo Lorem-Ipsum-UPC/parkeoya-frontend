@@ -37,13 +37,13 @@ export default function OnboardingPage() {
     zipCode: '',
     latitude: '',
     longitude: '',
-    totalSpaces: '',
-    regularSpaces: '',
-    disabledSpaces: '',
-    electricSpaces: '',
-    hourlyRate: '',
-    dailyRate: '',
-    monthlyRate: '',
+    totalSpaces: '1',
+    regularSpaces: '1',
+    disabledSpaces: '0',
+    electricSpaces: '0',
+    hourlyRate: '2.5',
+    dailyRate: '15',
+    monthlyRate: '200',
     operatingDays: [] as string[],
     openTime: '08:00',
     closeTime: '20:00',
@@ -98,7 +98,7 @@ export default function OnboardingPage() {
         disabledSpots: formData.disabledSpaces,
         electricSpots: formData.electricSpaces,
         availableSpots: formData.totalSpaces,
-        totalRows: '10',
+        totalRows: '1',
         totalColumns: '10',
         operatingDays: formData.operatingDays.join(','),
         open24Hours: formData.is24Hours,
@@ -113,60 +113,28 @@ export default function OnboardingPage() {
         description: 'Creando espacios de parqueo...',
       })
 
-      const totalSpots = parseInt(formData.totalSpaces)
+      const totalSpots = parseInt(formData.totalSpaces) || 0
       const disabledSpots = parseInt(formData.disabledSpaces) || 0
       const electricSpots = parseInt(formData.electricSpaces) || 0
-      const regularSpots =
-        parseInt(formData.regularSpaces) || totalSpots - disabledSpots - electricSpots
+      const regularSpots = parseInt(formData.regularSpaces) || 0
 
-      let spotIndex = 1
-      let row = 0
-      let col = 0
-      const spotsPerRow = 10
+      const columns = 10
+      const calculatedTotal = regularSpots + disabledSpots + electricSpots
+      const spotsToCreate = Math.min(totalSpots, calculatedTotal)
 
-      for (let i = 0; i < disabledSpots; i++) {
-        const label = `D-${String(spotIndex).padStart(2, '0')}`
+      console.log(`Creando ${spotsToCreate} spots: ${regularSpots} regulares, ${disabledSpots} discapacitados, ${electricSpots} eléctricos`)
+
+      // Crear solo los spots especificados por el usuario
+      for (let spotIndex = 0; spotIndex < spotsToCreate; spotIndex++) {
+        const row = Math.floor(spotIndex / columns)
+        const col = spotIndex % columns
+        const label = (spotIndex + 1).toString()
+
         await apiClient.addParkingSpot(parking.id, {
           row: row,
           column: col,
           label: label,
         })
-        spotIndex++
-        col++
-        if (col >= spotsPerRow) {
-          col = 0
-          row++
-        }
-      }
-
-      for (let i = 0; i < electricSpots; i++) {
-        const label = `E-${String(spotIndex).padStart(2, '0')}`
-        await apiClient.addParkingSpot(parking.id, {
-          row: row,
-          column: col,
-          label: label,
-        })
-        spotIndex++
-        col++
-        if (col >= spotsPerRow) {
-          col = 0
-          row++
-        }
-      }
-
-      for (let i = 0; i < regularSpots; i++) {
-        const label = `R-${String(spotIndex).padStart(2, '0')}`
-        await apiClient.addParkingSpot(parking.id, {
-          row: row,
-          column: col,
-          label: label,
-        })
-        spotIndex++
-        col++
-        if (col >= spotsPerRow) {
-          col = 0
-          row++
-        }
       }
 
       toast({
